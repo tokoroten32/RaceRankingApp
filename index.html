@@ -9,45 +9,45 @@
         header { background: #fff; padding: 15px; text-align: center; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.2rem; }
         
-        /* ファイル入力 */
         .file-area { padding: 15px; background: #fff; margin-bottom: 10px; text-align: center; }
+        .status-box { font-size: 0.8rem; color: #666; margin-top: 8px; min-height: 1.2em; }
+        .status-success { color: #34c759; font-weight: bold; }
+        .status-loading { color: #007aff; }
         
-        /* タブ */
+        /* 期間設定エリア (NEW) */
+        .period-area { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; display: none; }
+        .period-area.visible { display: block; }
+        .period-control { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 5px; }
+        .period-select { padding: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; width: auto; }
+
         .tabs { display: flex; background: #fff; border-bottom: 1px solid #ccc; }
-        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; color: #888; border-bottom: 3px solid transparent; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; color: #888; border-bottom: 3px solid transparent; font-size: 0.9rem; }
         .tab.active { color: #007aff; border-bottom: 3px solid #007aff; font-weight: bold; }
         
-        /* コンテンツエリア */
         .content { display: none; padding: 15px; }
         .content.active { display: block; }
         
-        /* フィルタUI */
         .filter-group { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .filter-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .filter-row:last-child { margin-bottom: 0; }
         select, input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; }
         
-        /* リスト表示 */
         .record-list { list-style: none; padding: 0; margin: 0; }
         .record-item { background: #fff; padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .record-item:last-child { border-bottom: none; }
         
-        /* 順位バッジ */
         .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; font-size: 0.9rem; flex-shrink: 0; }
         .rank-1 { background: gold; color: #fff; }
         .rank-2 { background: silver; color: #fff; }
         .rank-3 { background: #cd7f32; color: #fff; }
         .rank-other { background: #eee; color: #333; }
-
-        /* 文字スタイル */
         .horse-name { font-weight: bold; font-size: 1.1rem; display: block; }
         .meta-info { font-size: 0.8rem; color: #666; }
         .time-str { font-weight: bold; font-size: 1.2rem; font-family: monospace; }
         .condition { font-size: 0.7rem; color: #999; }
         .outlier { color: red; }
         .ref-text { color: red; font-size: 0.7rem; }
-
-        /* 検索・選択機能 */
+        
         .search-box { display: flex; gap: 5px; }
         .selected-horses-area { background: #fff; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
         .tag-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
@@ -56,9 +56,17 @@
         .btn-compare { width: 100%; padding: 10px; background: #007aff; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
         .btn-add { background: none; border: none; color: #007aff; font-size: 1.5rem; cursor: pointer; }
         .check-icon { color: #007aff; font-size: 1.2rem; }
-        
-        /* ユーティリティ */
         .hidden { display: none !important; }
+
+        .update-box { text-align: center; padding: 20px; border: 2px dashed #ccc; border-radius: 10px; background: #fafafa; margin-bottom: 20px; }
+        .btn-primary { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; }
+        .btn-secondary { background: #8e8e93; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
+        .btn-danger { background: #ff3b30; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; margin-top: 5px; }
+        
+        .script-area { text-align: left; margin-bottom: 20px; }
+        .code-box { width: 100%; height: 100px; font-family: monospace; font-size: 0.8rem; border: 1px solid #ddd; border-radius: 5px; padding: 5px; background: #f0f0f0; color: #555; box-sizing: border-box; resize: vertical; }
+        .btn-copy { background: #5856d6; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; margin-right: 5px; }
+        .btn-colab { background: #f9ab00; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; text-decoration: none; display: inline-block; }
 
     </style>
 </head>
@@ -69,14 +77,35 @@
 </header>
 
 <div class="file-area">
-    <label for="csvFile">CSVファイルを選択:</label>
+    <label for="csvFile" style="font-weight:bold;">メインデータの読み込み</label><br>
+    <div style="font-size:0.7rem; color:#888; margin-bottom:5px;">(※通常は自動で読み込まれます)</div>
     <input type="file" id="csvFile" accept=".csv">
-    <div id="fileStatus" style="font-size: 0.8rem; color: gray; margin-top: 5px;">未読み込み</div>
+    <div id="fileStatus" class="status-box">データ未ロード</div>
+    <div id="clearDataArea" class="hidden">
+        <button class="btn-danger" onclick="clearDB()">保存データを削除</button>
+    </div>
+
+    <div id="periodFilterArea" class="period-area">
+        <div style="font-size:0.8rem; font-weight:bold; color:#007aff;">▼ 対象期間の設定</div>
+        <div class="period-control">
+            <select id="startYear" class="period-select" onchange="applyDateFilter()"></select>
+            <span>年</span>
+            <select id="startMonth" class="period-select" onchange="applyDateFilter()">
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+            </select>
+            <span>月 〜 最新</span>
+        </div>
+        <div id="periodCount" style="font-size:0.7rem; color:#666; margin-top:5px;"></div>
+    </div>
 </div>
 
 <div class="tabs">
     <div class="tab active" onclick="switchTab('ranking')">ランキング</div>
     <div class="tab" onclick="switchTab('search')">馬検索・比較</div>
+    <div class="tab" onclick="switchTab('update')">データ追加</div>
 </div>
 
 <div id="ranking" class="content active">
@@ -111,24 +140,21 @@
         </div>
     </div>
     <div id="rankingList" class="record-list">
-        <div style="text-align:center; color:#999; padding:20px;">CSVファイルを読み込んでください</div>
+        <div style="text-align:center; color:#999; padding:20px;">データを読み込んでください</div>
     </div>
 </div>
 
 <div id="search" class="content">
-    
     <div class="filter-group">
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="馬名を入力 (例: ドウデュース)" oninput="searchHorse()">
         </div>
     </div>
-
     <div class="selected-horses-area" id="selectedArea" style="display:none;">
         <div style="font-size:0.8rem; color:gray; margin-bottom:5px;">選択中の馬</div>
         <div class="tag-container" id="selectedTags"></div>
         <button class="btn-compare" onclick="showComparison()">このメンバーの履歴を比較</button>
     </div>
-    
     <div id="searchFilterArea" class="filter-group hidden">
         <div style="font-size:0.8rem; color:#007aff; margin-bottom:8px; font-weight:bold;">▼ 絞り込み条件</div>
         <div class="filter-row">
@@ -162,113 +188,460 @@
             </label>
         </div>
     </div>
-
     <div id="searchResultTitle" style="margin: 10px 0; font-weight:bold; display:none;">検索結果</div>
     <div id="searchList" class="record-list"></div>
 </div>
 
+<div id="update" class="content">
+    <div class="filter-group">
+        <h3 style="margin-top:0;">1. 新データの取得</h3>
+        <p style="font-size:0.9rem; color:#666;">
+            Google Colabでコードを実行し、CSV(例: new_data.csv)を取得します。
+        </p>
+        <div class="script-area">
+            <textarea id="pythonCode" class="code-box" readonly></textarea>
+            <div style="margin-top:5px; text-align:center;">
+                <button class="btn-copy" onclick="copyScript()">📋 コードをコピー</button>
+                <a href="https://colab.research.google.com/" target="_blank" class="btn-colab">🚀 Colabを開く</a>
+            </div>
+        </div>
+    </div>
+    <div class="filter-group">
+        <h3 style="margin-top:0;">2. 既存データに追記</h3>
+        <p style="font-size:0.9rem; color:#666;">
+            新しく取得したCSVを選択し、「アプリ内に保存」を押してください。<br>
+            <span style="color:#007aff; font-weight:bold;">ダウンロード不要で、そのまま使えます。</span>
+        </p>
+        <div class="update-box">
+            <label style="display:block; margin-bottom:10px; font-weight:bold;">追加するCSV (new_data.csv)</label>
+            <input type="file" id="updateFile" accept=".csv">
+        </div>
+        <div id="updateResult" style="margin-bottom:20px; font-weight:bold; color:#007aff;"></div>
+        <div id="mergeActionArea" class="hidden">
+            <button id="saveInternalBtn" class="btn-primary" onclick="saveMergedToDB()">
+                💾 追記してアプリ内に保存<br>
+                <span style="font-size:0.8rem; font-weight:normal;">(次回からこのデータが開きます)</span>
+            </button>
+            <div style="margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
+                <p style="font-size:0.8rem; color:#666;">バックアップが必要な場合のみ:</p>
+                <button id="downloadBtn" class="btn-secondary" onclick="downloadMergedCSV()">
+                    CSVファイルとして書き出し
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-    let allRecords = [];
+    // --- 変数定義 ---
+    let allRecords = [];      // 全データ（生）
+    let activeRecords = [];   // 期間フィルタ適用後のデータ（分析用）
+    let csvHeaders = []; 
+    let rawRecords = [];      // マージ処理用生データ
     let selectedHorses = new Set(); 
     let isComparisonMode = false;
+    let mergedContent = ""; 
+    const DB_NAME = 'KeibaAppDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'csvStore';
+    let db;
 
-    // タブ切り替え
+    // --- Colab用スクリプト ---
+    const pythonScriptContent = `# Google Colab用 競馬データ取得スクリプト
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+import re
+import random
+from google.colab import files
+
+# ========== 設定エリア (ここを変更) ==========
+TARGET_YEAR = 2025  # 取得したい年
+TARGET_MONTH = 1    # 取得したい月
+# ==========================================
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+]
+
+def get_html(url):
+    try:
+        headers = {"User-Agent": random.choice(USER_AGENTS)}
+        res = requests.get(url, headers=headers, timeout=30)
+        res.encoding = "euc-jp"
+        return BeautifulSoup(res.text, "html.parser")
+    except: return None
+
+def get_race_ids(year, month):
+    race_ids = []
+    page = 1
+    while True:
+        url = f"https://db.netkeiba.com/?pid=race_list&word=&start_year={year}&start_mon={month}&end_year={year}&end_mon={month}&sort=date&list=100&page={page}"
+        soup = get_html(url)
+        if not soup: break
+        table = soup.find("table", class_="race_table_01")
+        if not table: break
+        rows = table.find_all("tr")
+        if len(rows) <= 1: break
+        current_ids = []
+        for row in rows[1:]:
+            a = row.find("a", href=re.compile(r"/race/\d+"))
+            if a:
+                match = re.search(r"/race/(\d+)", a["href"])
+                if match: current_ids.append(match.group(1))
+        if not current_ids: break
+        race_ids.extend(current_ids)
+        page += 1
+        time.sleep(1)
+    return race_ids
+
+def get_race_details(race_id):
+    url = f"https://db.netkeiba.com/race/{race_id}/"
+    soup = get_html(url)
+    if not soup: return []
+    intro = soup.find("div", class_="data_intro")
+    date_str, place, track, dist, cond = "", "その他", "芝", 1600, "良"
+    if intro:
+        txt = intro.get_text()
+        d_m = re.search(r"(\d+年\d+月\d+日)", txt)
+        if d_m: date_str = d_m.group(1)
+        if "ダ" in txt: track = "ダート"
+        elif "障" in txt: track = "障害"
+        dist_m = re.search(r"(\d+)m", txt)
+        if dist_m: dist = int(dist_m.group(1))
+        p_code = race_id[4:6]
+        places = {"05":"東京","06":"中山","08":"京都","09":"阪神"}
+        place = places.get(p_code, "その他")
+        if "稍" in txt: cond = "稍重"
+        elif "重" in txt: cond = "重"
+        elif "不" in txt: cond = "不良"
+    table = soup.find("table", class_="race_table_01")
+    if not table: return []
+    rows = table.find_all("tr")
+    headers = [th.get_text().strip() for th in rows[0].find_all("th")]
+    try:
+        i_rank = headers.index("着順")
+        i_name = headers.index("馬名")
+        i_time = headers.index("タイム")
+        i_w = headers.index("斤量")
+    except: return []
+    records = []
+    for row in rows[1:]:
+        cols = row.find_all("td")
+        if len(cols) != len(headers): continue
+        try:
+            r_str = cols[i_rank].get_text().strip()
+            if not r_str.isdigit(): continue
+            rank = int(r_str)
+            name = cols[i_name].get_text().strip()
+            t_str = cols[i_time].get_text().strip()
+            sec = 0.0
+            if ":" in t_str:
+                p = t_str.split(":")
+                sec = float(p[0])*60 + float(p[1])
+            w = float(cols[i_w].get_text().strip())
+            records.append({
+                "race_id": race_id, "date": date_str, "place": place, "track": track,
+                "distance": dist, "condition": cond, "rank": rank, "horse_name": name,
+                "time_str": t_str, "seconds": round(sec, 1), "weight": w, "age_sex": "",
+                "is_abnormal_type": False, "is_statistical_outlier": False, "is_outlier": False
+            })
+        except: continue
+    return records
+
+print(f"{TARGET_YEAR}年{TARGET_MONTH}月のデータを取得中...")
+r_ids = get_race_ids(TARGET_YEAR, TARGET_MONTH)
+print(f"対象レース数: {len(r_ids)}件")
+all_data = []
+for i, rid in enumerate(r_ids):
+    data = get_race_details(rid)
+    all_data.extend(data)
+    time.sleep(1)
+    if i % 10 == 0: print(f"{i}/{len(r_ids)}")
+if all_data:
+    df = pd.DataFrame(all_data)
+    filename = f"new_data_{TARGET_YEAR}_{TARGET_MONTH}.csv"
+    df.to_csv(filename, index=False, encoding="utf-8-sig")
+    print("完了！ダウンロードします...")
+    files.download(filename)
+else:
+    print("データが見つかりませんでした")
+`;
+
+    window.onload = function() {
+        openDB();
+        document.getElementById('pythonCode').value = pythonScriptContent;
+    };
+
+    function copyScript() {
+        const copyText = document.getElementById("pythonCode");
+        copyText.select();
+        navigator.clipboard.writeText(copyText.value).then(() => {
+            alert("コードをコピーしました！Colabに貼り付けてください。");
+        });
+    }
+
+    // --- DB処理 ---
+    function openDB() {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = function(event) {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME);
+            }
+        };
+        request.onsuccess = function(event) {
+            db = event.target.result;
+            loadFromDB();
+        };
+        request.onerror = function(event) { console.error("Database error"); };
+    }
+
+    function saveToDB(csvText, fileName) {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const data = { id: 'mainCSV', content: csvText, fileName: fileName, date: new Date().toLocaleString() };
+        store.put(data).onsuccess = function() {
+            document.getElementById('fileStatus').innerHTML = `<span class="status-success">データを更新・保存しました (${data.date})</span>`;
+        };
+    }
+
+    function loadFromDB() {
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        store.get('mainCSV').onsuccess = function(event) {
+            const result = event.target.result;
+            if (result) {
+                setTimeout(() => {
+                    parseCSV(result.content, false); 
+                    document.getElementById('fileStatus').innerHTML = `<span class="status-success">保存データ (${result.date}) をロードしました</span>`;
+                    document.getElementById('clearDataArea').classList.remove('hidden');
+                }, 100);
+            } else {
+                document.getElementById('fileStatus').innerText = "データ未ロード (CSVを選択してください)";
+            }
+        };
+    }
+
+    function clearDB() {
+        if(!confirm("保存されたデータを削除しますか？")) return;
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        transaction.objectStore(STORE_NAME).delete('mainCSV');
+        location.reload();
+    }
+
+    // --- CSV & 期間フィルタ処理 ---
     function switchTab(tabName) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
         
-        const buttons = document.querySelectorAll('.tab');
-        if(tabName === 'ranking') buttons[0].classList.add('active');
-        else buttons[1].classList.add('active');
+        const tabs = document.querySelectorAll('.tab');
+        if(tabName === 'ranking') tabs[0].classList.add('active');
+        else if(tabName === 'search') tabs[1].classList.add('active');
+        else tabs[2].classList.add('active');
 
         document.getElementById(tabName).classList.add('active');
     }
 
-    // CSV読み込み
     document.getElementById('csvFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
-        reader.onload = function(event) { parseCSV(event.target.result); };
+        reader.onload = function(event) { parseCSV(event.target.result, true, file.name); };
         reader.readAsText(file);
     });
 
-    function parseCSV(text) {
+    function parseCSV(text, shouldSave = false, fileName = "") {
         if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-
         const lines = text.split(/\r\n|\n/);
-        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-        
+        const headerLine = lines[0];
+        csvHeaders = headerLine.split(',').map(h => h.trim().replace(/"/g, ''));
         const data = [];
+        const rawData = [];
+        let minYear = 9999;
+        let maxYear = 0;
+
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
             const cols = lines[i].split(',');
-            if (cols.length < headers.length) continue;
-
+            if (cols.length < csvHeaders.length) continue;
             const record = {};
-            headers.forEach((h, idx) => { record[h] = cols[idx] ? cols[idx].trim() : ''; });
-
+            csvHeaders.forEach((h, idx) => { record[h] = cols[idx] ? cols[idx].trim() : ''; });
             record.distance = parseInt(record.distance) || 0;
             record.seconds = parseFloat(record.seconds) || 0.0;
-            record.is_outlier = (record.is_outlier === 'True');
-            data.push(record);
-        }
+            record.is_outlier = (record.is_outlier === 'True' || record.is_outlier === 'true');
+            
+            // 年月情報の解析 (YYYY年MM月DD日)
+            const dateMatch = record.date.match(/(\d+)年(\d+)月/);
+            if (dateMatch) {
+                record.year = parseInt(dateMatch[1]);
+                record.month = parseInt(dateMatch[2]);
+                if(record.year < minYear) minYear = record.year;
+                if(record.year > maxYear) maxYear = record.year;
+            } else {
+                record.year = 0; record.month = 0;
+            }
 
+            data.push(record);
+            rawData.push(record);
+        }
         allRecords = data;
-        document.getElementById('fileStatus').innerText = `読み込み完了: ${allRecords.length}件`;
-        updateRanking();
+        rawRecords = rawData;
+        
+        // 期間UIの構築
+        setupDateFilter(minYear, maxYear);
+        
+        // 初期状態では全期間
+        applyDateFilter(false);
+
+        if (shouldSave) {
+            saveToDB(text, fileName);
+            document.getElementById('fileStatus').innerHTML = `<span class="status-success">データを保存しました (${fileName})</span>`;
+            document.getElementById('clearDataArea').classList.remove('hidden');
+        }
+    }
+    
+    // ★期間フィルタUI構築
+    function setupDateFilter(minYear, maxYear) {
+        if (allRecords.length === 0) return;
+        const yearSelect = document.getElementById('startYear');
+        yearSelect.innerHTML = '';
+        
+        // 年の選択肢生成 (Min 〜 Max)
+        for (let y = minYear; y <= maxYear; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.innerText = y;
+            yearSelect.appendChild(opt);
+        }
+        // 初期値はMinYear
+        yearSelect.value = minYear;
+        document.getElementById('startMonth').value = 1;
+        document.getElementById('periodFilterArea').classList.add('visible');
     }
 
-    // --- ランキングタブ ---
-    function updateRanking() {
-        if (allRecords.length === 0) return;
+    // ★期間フィルタ実行
+    function applyDateFilter(refreshUI = true) {
+        const sYear = parseInt(document.getElementById('startYear').value);
+        const sMonth = parseInt(document.getElementById('startMonth').value);
+        
+        // YYYYMM形式で比較
+        const startVal = sYear * 100 + sMonth;
+        
+        activeRecords = allRecords.filter(r => {
+            const rVal = r.year * 100 + r.month;
+            return rVal >= startVal;
+        });
+        
+        document.getElementById('periodCount').innerText = `対象データ: ${activeRecords.length} / ${allRecords.length}件`;
+        
+        if (refreshUI) {
+            updateRanking();
+            if(!isComparisonMode) searchHorse();
+            else updateComparison();
+        }
+    }
 
+    // --- マージ処理 ---
+    document.getElementById('updateFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file || allRecords.length === 0) { alert("先にメインCSVを読み込んでください。"); return; }
+        const reader = new FileReader();
+        reader.onload = function(event) { mergeCSVProcess(event.target.result); };
+        reader.readAsText(file);
+    });
+
+    function mergeCSVProcess(newCsvText) {
+        if (newCsvText.charCodeAt(0) === 0xFEFF) newCsvText = newCsvText.slice(1);
+        const lines = newCsvText.split(/\r\n|\n/);
+        let addedCount = 0;
+        let updatedCount = 0;
+        const recordMap = new Map();
+        rawRecords.forEach(r => {
+            const key = r.race_id + "_" + r.horse_name;
+            recordMap.set(key, r);
+        });
+        const newHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            const cols = lines[i].split(',');
+            const newRecord = {};
+            newHeaders.forEach((h, idx) => { newRecord[h] = cols[idx] ? cols[idx].trim() : ''; });
+            const key = newRecord.race_id + "_" + newRecord.horse_name;
+            if (recordMap.has(key)) updatedCount++; else addedCount++;
+            recordMap.set(key, newRecord);
+        }
+        const headerStr = csvHeaders.join(",");
+        let bodyStr = "";
+        const mergedList = Array.from(recordMap.values());
+        mergedList.sort((a, b) => (a.date < b.date ? 1 : -1)); // 日付降順
+        mergedList.forEach(r => {
+            const row = csvHeaders.map(h => r[h] !== undefined ? r[h] : "").join(",");
+            bodyStr += row + "\n";
+        });
+        mergedContent = headerStr + "\n" + bodyStr;
+        document.getElementById('updateResult').innerHTML = `追記準備OK！<br>追加: ${addedCount}件 / 更新: ${updatedCount}件<br>合計: ${mergedList.length}件`;
+        document.getElementById('mergeActionArea').classList.remove('hidden');
+    }
+
+    function saveMergedToDB() {
+        if(!mergedContent) return;
+        saveToDB(mergedContent, "merged_data.csv");
+        parseCSV(mergedContent, false); 
+        alert("アプリ内のデータを更新しました！\n次回起動時からはこのデータが自動で開きます。");
+        switchTab('ranking');
+        document.getElementById('updateFile').value = "";
+        document.getElementById('updateResult').innerHTML = "";
+        document.getElementById('mergeActionArea').classList.add('hidden');
+    }
+
+    function downloadMergedCSV() {
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), mergedContent], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "app_data_combined.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // --- ランキング・検索 (activeRecordsを使用するように変更) ---
+    function updateRanking() {
+        if (activeRecords.length === 0) {
+            document.getElementById('rankingList').innerHTML = '<div style="padding:20px; text-align:center; color:#999;">対象期間内のデータがありません</div>';
+            return;
+        }
         const place = document.getElementById('placeSelect').value;
         const track = document.getElementById('trackSelect').value;
         const dist = parseInt(document.getElementById('distSelect').value);
         const showOutlier = document.getElementById('outlierCheck').checked;
-
-        const filtered = allRecords.filter(r => {
-            return (place === '全て' || r.place === place) &&
-                   (r.track === track) &&
-                   (r.distance === dist) &&
-                   (showOutlier ? true : !r.is_outlier);
+        const filtered = activeRecords.filter(r => {
+            return (place === '全て' || r.place === place) && (r.track === track) && (r.distance === dist) && (showOutlier ? true : !r.is_outlier);
         });
-
         filtered.sort((a, b) => a.seconds - b.seconds);
         renderList(filtered.slice(0, 100), 'rankingList', true);
     }
 
-    // --- 検索・比較タブ ---
     function searchHorse() {
         isComparisonMode = false;
-        // フィルタエリアを隠す
         document.getElementById('searchFilterArea').classList.add('hidden');
-        document.getElementById('searchResultTitle').innerText = "検索結果";
+        document.getElementById('searchResultTitle').innerText = "検索結果 (指定期間内)";
         document.getElementById('searchResultTitle').style.display = "block";
-        
         const query = document.getElementById('searchInput').value;
-        if (!query) {
-            document.getElementById('searchList').innerHTML = '';
-            return;
-        }
-
-        const hits = [...new Set(allRecords.map(r => r.horse_name))]
-            .filter(name => name.includes(query))
-            .sort();
-
+        if (!query) { document.getElementById('searchList').innerHTML = ''; return; }
+        // 馬名検索も期間フィルタ済みデータ(activeRecords)から行う
+        const hits = [...new Set(activeRecords.map(r => r.horse_name))].filter(name => name.includes(query)).sort();
         const container = document.getElementById('searchList');
         container.innerHTML = '';
-
         hits.forEach(name => {
             const div = document.createElement('div');
-            div.className = 'record-item';
-            div.style.cursor = 'pointer';
-            
+            div.className = 'record-item'; div.style.cursor = 'pointer';
             const isSelected = selectedHorses.has(name);
             const icon = isSelected ? '<span class="check-icon">✔</span>' : '<button class="btn-add">＋</button>';
-            
             div.innerHTML = `<span class="horse-name">${name}</span> ${icon}`;
             div.onclick = () => toggleSelectHorse(name);
             container.appendChild(div);
@@ -276,103 +649,63 @@
     }
 
     function toggleSelectHorse(name) {
-        if (selectedHorses.has(name)) selectedHorses.delete(name);
-        else selectedHorses.add(name);
-        
+        if (selectedHorses.has(name)) selectedHorses.delete(name); else selectedHorses.add(name);
         updateSelectedArea();
-        if (!isComparisonMode) searchHorse();
-        else updateComparison(); // 比較モードならリスト更新
+        if (!isComparisonMode) searchHorse(); else updateComparison();
     }
 
     function updateSelectedArea() {
         const area = document.getElementById('selectedArea');
         const container = document.getElementById('selectedTags');
-        
-        if (selectedHorses.size === 0) {
-            area.style.display = 'none';
-            return;
-        }
-        
-        area.style.display = 'block';
-        container.innerHTML = '';
-        
+        if (selectedHorses.size === 0) { area.style.display = 'none'; return; }
+        area.style.display = 'block'; container.innerHTML = '';
         selectedHorses.forEach(name => {
-            const tag = document.createElement('div');
-            tag.className = 'horse-tag';
+            const tag = document.createElement('div'); tag.className = 'horse-tag';
             tag.innerHTML = `${name} <span class="remove-btn" onclick="toggleSelectHorse('${name}')">×</span>`;
             container.appendChild(tag);
         });
     }
 
-    // 比較モード開始
     function showComparison() {
         isComparisonMode = true;
-        // フィルタエリアを表示
         document.getElementById('searchFilterArea').classList.remove('hidden');
-        document.getElementById('searchResultTitle').innerText = "履歴比較";
+        document.getElementById('searchResultTitle').innerText = "履歴比較 (指定期間内)";
         updateComparison();
     }
 
-    // ★比較リストの更新ロジック（フィルタ適用）
     function updateComparison() {
         if (!isComparisonMode) return;
-
-        // フィルタ値の取得
         const place = document.getElementById('s_placeSelect').value;
         const track = document.getElementById('s_trackSelect').value;
-        const distStr = document.getElementById('s_distSelect').value; // "全て" or 数字
+        const distStr = document.getElementById('s_distSelect').value;
         const showOutlier = document.getElementById('s_outlierCheck').checked;
-
-        // データの絞り込み
-        let filtered = allRecords.filter(r => selectedHorses.has(r.horse_name));
-
+        // activeRecordsから抽出
+        let filtered = activeRecords.filter(r => selectedHorses.has(r.horse_name));
         filtered = filtered.filter(r => {
-            const matchPlace = (place === '全て' || r.place === place);
-            const matchTrack = (track === '全て' || r.track === track);
-            const matchDist = (distStr === '全て' || r.distance === parseInt(distStr));
-            const matchOutlier = showOutlier ? true : !r.is_outlier;
-            return matchPlace && matchTrack && matchDist && matchOutlier;
+            return (place === '全て' || r.place === place) && (track === '全て' || r.track === track) && (distStr === '全て' || r.distance === parseInt(distStr)) && (showOutlier ? true : !r.is_outlier);
         });
-
-        // ソート: 距離やトラックがバラバラな場合は「日付順」、条件が揃っているなら「タイム順」にするのが便利
-        // ここではデフォルトで「タイム順」にし、条件が混ざっていると比較しにくいので注意喚起する手もあるが、シンプルにタイム昇順にする
         filtered.sort((a, b) => a.seconds - b.seconds);
-
         renderList(filtered, 'searchList', false, true);
     }
 
-    // リスト描画
     function renderList(data, targetId, isRanking, highlightName = false) {
-        const container = document.getElementById(targetId);
-        container.innerHTML = '';
-
-        if (data.length === 0) {
-            container.innerHTML = '<div style="padding:15px; text-align:center; color:#999;">該当データなし</div>';
-            return;
-        }
-
+        const container = document.getElementById(targetId); container.innerHTML = '';
+        if (data.length === 0) { container.innerHTML = '<div style="padding:15px; text-align:center; color:#999;">該当データなし</div>'; return; }
         data.forEach((r, index) => {
-            const div = document.createElement('div');
-            div.className = 'record-item';
-
+            const div = document.createElement('div'); div.className = 'record-item';
             let rankHtml = '';
             if (isRanking) {
                 let rankClass = 'rank-other';
-                if (index === 0) rankClass = 'rank-1';
-                if (index === 1) rankClass = 'rank-2';
-                if (index === 2) rankClass = 'rank-3';
+                if (index === 0) rankClass = 'rank-1'; if (index === 1) rankClass = 'rank-2'; if (index === 2) rankClass = 'rank-3';
                 rankHtml = `<div class="rank-badge ${rankClass}">${index + 1}</div>`;
             }
-
             const timeColorClass = r.is_outlier ? 'outlier' : '';
             const refText = r.is_outlier ? '<div class="ref-text">参考</div>' : '';
             const nameStyle = highlightName ? 'color:#007aff;' : '';
-
             div.innerHTML = `
                 <div style="display:flex; align-items:center;">
                     ${rankHtml}
-                    <div>
-                        <span class="horse-name" style="${nameStyle}">${r.horse_name}</span>
+                    <div><span class="horse-name" style="${nameStyle}">${r.horse_name}</span>
                         <div class="meta-info">${r.date} (${r.place}) <span style="font-weight:bold;">${r.track}${r.distance}m</span></div>
                     </div>
                 </div>
@@ -380,12 +713,10 @@
                     <div class="time-str ${timeColorClass}">${r.time_str}</div>
                     <div class="condition">${r.condition} / ${r.rank}着</div>
                     ${refText}
-                </div>
-            `;
+                </div>`;
             container.appendChild(div);
         });
     }
 </script>
-
 </body>
 </html>
