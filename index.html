@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>競馬データ分析 Web</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; margin: 0; padding: 0; background: #f2f2f7; color: #333; }
+        header { background: #fff; padding: 15px; text-align: center; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 100; }
+        h1 { margin: 0; font-size: 1.2rem; }
+        
+        /* ファイル入力 */
+        .file-area { padding: 15px; background: #fff; margin-bottom: 10px; text-align: center; }
+        
+        /* タブ */
+        .tabs { display: flex; background: #fff; border-bottom: 1px solid #ccc; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; color: #888; border-bottom: 3px solid transparent; }
+        .tab.active { color: #007aff; border-bottom: 3px solid #007aff; font-weight: bold; }
+        
+        /* コンテンツエリア */
+        .content { display: none; padding: 15px; }
+        .content.active { display: block; }
+        
+        /* フィルタUI */
+        .filter-group { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .filter-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .filter-row:last-child { margin-bottom: 0; }
+        select, input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; }
+        
+        /* リスト表示 */
+        .record-list { list-style: none; padding: 0; margin: 0; }
+        .record-item { background: #fff; padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .record-item:last-child { border-bottom: none; }
+        
+        /* 順位バッジ */
+        .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; font-size: 0.9rem; flex-shrink: 0; }
+        .rank-1 { background: gold; color: #fff; }
+        .rank-2 { background: silver; color: #fff; }
+        .rank-3 { background: #cd7f32; color: #fff; }
+        .rank-other { background: #eee; color: #333; }
+
+        /* 文字スタイル */
+        .horse-name { font-weight: bold; font-size: 1.1rem; display: block; }
+        .meta-info { font-size: 0.8rem; color: #666; }
+        .time-str { font-weight: bold; font-size: 1.2rem; font-family: monospace; }
+        .condition { font-size: 0.7rem; color: #999; }
+        .outlier { color: red; }
+        .ref-text { color: red; font-size: 0.7rem; }
+
+        /* 検索・選択機能 */
+        .search-box { display: flex; gap: 5px; }
+        .selected-horses-area { background: #fff; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+        .tag-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+        .horse-tag { background: #e0f0ff; color: #007aff; padding: 5px 10px; border-radius: 15px; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; border: 1px solid #007aff; }
+        .remove-btn { cursor: pointer; font-weight: bold; }
+        .btn-compare { width: 100%; padding: 10px; background: #007aff; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+        .btn-add { background: none; border: none; color: #007aff; font-size: 1.5rem; cursor: pointer; }
+        .check-icon { color: #007aff; font-size: 1.2rem; }
+        
+        /* ユーティリティ */
+        .hidden { display: none !important; }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>競馬データ分析 Web</h1>
+</header>
+
+<div class="file-area">
+    <label for="csvFile">CSVファイルを選択:</label>
+    <input type="file" id="csvFile" accept=".csv">
+    <div id="fileStatus" style="font-size: 0.8rem; color: gray; margin-top: 5px;">未読み込み</div>
+</div>
+
+<div class="tabs">
+    <div class="tab active" onclick="switchTab('ranking')">ランキング</div>
+    <div class="tab" onclick="switchTab('search')">馬検索・比較</div>
+</div>
+
+<div id="ranking" class="content active">
+    <div class="filter-group">
+        <div class="filter-row">
+            <select id="placeSelect" onchange="updateRanking()">
+                <option value="全て">場所: 全て</option>
+                <option value="東京">東京</option>
+                <option value="中山">中山</option>
+                <option value="京都">京都</option>
+                <option value="阪神">阪神</option>
+                <option value="その他">その他</option>
+            </select>
+            <select id="trackSelect" onchange="updateRanking()">
+                <option value="芝" selected>芝</option>
+                <option value="ダート">ダート</option>
+                <option value="障害">障害</option>
+            </select>
+        </div>
+        <div class="filter-row">
+            <select id="distSelect" onchange="updateRanking()">
+                <option value="1200">1200m</option>
+                <option value="1400">1400m</option>
+                <option value="1600" selected>1600m</option>
+                <option value="1800">1800m</option>
+                <option value="2000">2000m</option>
+                <option value="2400">2400m</option>
+            </select>
+            <label style="display:flex; align-items:center; font-size:0.8rem;">
+                <input type="checkbox" id="outlierCheck" onchange="updateRanking()"> 参考記録込
+            </label>
+        </div>
+    </div>
+    <div id="rankingList" class="record-list">
+        <div style="text-align:center; color:#999; padding:20px;">CSVファイルを読み込んでください</div>
+    </div>
+</div>
+
+<div id="search" class="content">
+    
+    <div class="filter-group">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="馬名を入力 (例: ドウデュース)" oninput="searchHorse()">
+        </div>
+    </div>
+
+    <div class="selected-horses-area" id="selectedArea" style="display:none;">
+        <div style="font-size:0.8rem; color:gray; margin-bottom:5px;">選択中の馬</div>
+        <div class="tag-container" id="selectedTags"></div>
+        <button class="btn-compare" onclick="showComparison()">このメンバーの履歴を比較</button>
+    </div>
+    
+    <div id="searchFilterArea" class="filter-group hidden">
+        <div style="font-size:0.8rem; color:#007aff; margin-bottom:8px; font-weight:bold;">▼ 絞り込み条件</div>
+        <div class="filter-row">
+            <select id="s_placeSelect" onchange="updateComparison()">
+                <option value="全て" selected>場所: 全て</option>
+                <option value="東京">東京</option>
+                <option value="中山">中山</option>
+                <option value="京都">京都</option>
+                <option value="阪神">阪神</option>
+                <option value="その他">その他</option>
+            </select>
+            <select id="s_trackSelect" onchange="updateComparison()">
+                <option value="全て" selected>トラック: 全て</option>
+                <option value="芝">芝</option>
+                <option value="ダート">ダート</option>
+                <option value="障害">障害</option>
+            </select>
+        </div>
+        <div class="filter-row">
+            <select id="s_distSelect" onchange="updateComparison()">
+                <option value="全て" selected>距離: 全て</option>
+                <option value="1200">1200m</option>
+                <option value="1400">1400m</option>
+                <option value="1600">1600m</option>
+                <option value="1800">1800m</option>
+                <option value="2000">2000m</option>
+                <option value="2400">2400m</option>
+            </select>
+            <label style="display:flex; align-items:center; font-size:0.8rem;">
+                <input type="checkbox" id="s_outlierCheck" onchange="updateComparison()"> 参考記録込
+            </label>
+        </div>
+    </div>
+
+    <div id="searchResultTitle" style="margin: 10px 0; font-weight:bold; display:none;">検索結果</div>
+    <div id="searchList" class="record-list"></div>
+</div>
+
+<script>
+    let allRecords = [];
+    let selectedHorses = new Set(); 
+    let isComparisonMode = false;
+
+    // タブ切り替え
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        
+        const buttons = document.querySelectorAll('.tab');
+        if(tabName === 'ranking') buttons[0].classList.add('active');
+        else buttons[1].classList.add('active');
+
+        document.getElementById(tabName).classList.add('active');
+    }
+
+    // CSV読み込み
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) { parseCSV(event.target.result); };
+        reader.readAsText(file);
+    });
+
+    function parseCSV(text) {
+        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+        const lines = text.split(/\r\n|\n/);
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        
+        const data = [];
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            const cols = lines[i].split(',');
+            if (cols.length < headers.length) continue;
+
+            const record = {};
+            headers.forEach((h, idx) => { record[h] = cols[idx] ? cols[idx].trim() : ''; });
+
+            record.distance = parseInt(record.distance) || 0;
+            record.seconds = parseFloat(record.seconds) || 0.0;
+            record.is_outlier = (record.is_outlier === 'True');
+            data.push(record);
+        }
+
+        allRecords = data;
+        document.getElementById('fileStatus').innerText = `読み込み完了: ${allRecords.length}件`;
+        updateRanking();
+    }
+
+    // --- ランキングタブ ---
+    function updateRanking() {
+        if (allRecords.length === 0) return;
+
+        const place = document.getElementById('placeSelect').value;
+        const track = document.getElementById('trackSelect').value;
+        const dist = parseInt(document.getElementById('distSelect').value);
+        const showOutlier = document.getElementById('outlierCheck').checked;
+
+        const filtered = allRecords.filter(r => {
+            return (place === '全て' || r.place === place) &&
+                   (r.track === track) &&
+                   (r.distance === dist) &&
+                   (showOutlier ? true : !r.is_outlier);
+        });
+
+        filtered.sort((a, b) => a.seconds - b.seconds);
+        renderList(filtered.slice(0, 100), 'rankingList', true);
+    }
+
+    // --- 検索・比較タブ ---
+    function searchHorse() {
+        isComparisonMode = false;
+        // フィルタエリアを隠す
+        document.getElementById('searchFilterArea').classList.add('hidden');
+        document.getElementById('searchResultTitle').innerText = "検索結果";
+        document.getElementById('searchResultTitle').style.display = "block";
+        
+        const query = document.getElementById('searchInput').value;
+        if (!query) {
+            document.getElementById('searchList').innerHTML = '';
+            return;
+        }
+
+        const hits = [...new Set(allRecords.map(r => r.horse_name))]
+            .filter(name => name.includes(query))
+            .sort();
+
+        const container = document.getElementById('searchList');
+        container.innerHTML = '';
+
+        hits.forEach(name => {
+            const div = document.createElement('div');
+            div.className = 'record-item';
+            div.style.cursor = 'pointer';
+            
+            const isSelected = selectedHorses.has(name);
+            const icon = isSelected ? '<span class="check-icon">✔</span>' : '<button class="btn-add">＋</button>';
+            
+            div.innerHTML = `<span class="horse-name">${name}</span> ${icon}`;
+            div.onclick = () => toggleSelectHorse(name);
+            container.appendChild(div);
+        });
+    }
+
+    function toggleSelectHorse(name) {
+        if (selectedHorses.has(name)) selectedHorses.delete(name);
+        else selectedHorses.add(name);
+        
+        updateSelectedArea();
+        if (!isComparisonMode) searchHorse();
+        else updateComparison(); // 比較モードならリスト更新
+    }
+
+    function updateSelectedArea() {
+        const area = document.getElementById('selectedArea');
+        const container = document.getElementById('selectedTags');
+        
+        if (selectedHorses.size === 0) {
+            area.style.display = 'none';
+            return;
+        }
+        
+        area.style.display = 'block';
+        container.innerHTML = '';
+        
+        selectedHorses.forEach(name => {
+            const tag = document.createElement('div');
+            tag.className = 'horse-tag';
+            tag.innerHTML = `${name} <span class="remove-btn" onclick="toggleSelectHorse('${name}')">×</span>`;
+            container.appendChild(tag);
+        });
+    }
+
+    // 比較モード開始
+    function showComparison() {
+        isComparisonMode = true;
+        // フィルタエリアを表示
+        document.getElementById('searchFilterArea').classList.remove('hidden');
+        document.getElementById('searchResultTitle').innerText = "履歴比較";
+        updateComparison();
+    }
+
+    // ★比較リストの更新ロジック（フィルタ適用）
+    function updateComparison() {
+        if (!isComparisonMode) return;
+
+        // フィルタ値の取得
+        const place = document.getElementById('s_placeSelect').value;
+        const track = document.getElementById('s_trackSelect').value;
+        const distStr = document.getElementById('s_distSelect').value; // "全て" or 数字
+        const showOutlier = document.getElementById('s_outlierCheck').checked;
+
+        // データの絞り込み
+        let filtered = allRecords.filter(r => selectedHorses.has(r.horse_name));
+
+        filtered = filtered.filter(r => {
+            const matchPlace = (place === '全て' || r.place === place);
+            const matchTrack = (track === '全て' || r.track === track);
+            const matchDist = (distStr === '全て' || r.distance === parseInt(distStr));
+            const matchOutlier = showOutlier ? true : !r.is_outlier;
+            return matchPlace && matchTrack && matchDist && matchOutlier;
+        });
+
+        // ソート: 距離やトラックがバラバラな場合は「日付順」、条件が揃っているなら「タイム順」にするのが便利
+        // ここではデフォルトで「タイム順」にし、条件が混ざっていると比較しにくいので注意喚起する手もあるが、シンプルにタイム昇順にする
+        filtered.sort((a, b) => a.seconds - b.seconds);
+
+        renderList(filtered, 'searchList', false, true);
+    }
+
+    // リスト描画
+    function renderList(data, targetId, isRanking, highlightName = false) {
+        const container = document.getElementById(targetId);
+        container.innerHTML = '';
+
+        if (data.length === 0) {
+            container.innerHTML = '<div style="padding:15px; text-align:center; color:#999;">該当データなし</div>';
+            return;
+        }
+
+        data.forEach((r, index) => {
+            const div = document.createElement('div');
+            div.className = 'record-item';
+
+            let rankHtml = '';
+            if (isRanking) {
+                let rankClass = 'rank-other';
+                if (index === 0) rankClass = 'rank-1';
+                if (index === 1) rankClass = 'rank-2';
+                if (index === 2) rankClass = 'rank-3';
+                rankHtml = `<div class="rank-badge ${rankClass}">${index + 1}</div>`;
+            }
+
+            const timeColorClass = r.is_outlier ? 'outlier' : '';
+            const refText = r.is_outlier ? '<div class="ref-text">参考</div>' : '';
+            const nameStyle = highlightName ? 'color:#007aff;' : '';
+
+            div.innerHTML = `
+                <div style="display:flex; align-items:center;">
+                    ${rankHtml}
+                    <div>
+                        <span class="horse-name" style="${nameStyle}">${r.horse_name}</span>
+                        <div class="meta-info">${r.date} (${r.place}) <span style="font-weight:bold;">${r.track}${r.distance}m</span></div>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="time-str ${timeColorClass}">${r.time_str}</div>
+                    <div class="condition">${r.condition} / ${r.rank}着</div>
+                    ${refText}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+</script>
+
+</body>
+</html>
