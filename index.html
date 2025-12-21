@@ -14,7 +14,6 @@
         .status-success { color: #34c759; font-weight: bold; }
         .status-loading { color: #007aff; }
         
-        /* 期間設定エリア (NEW) */
         .period-area { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; display: none; }
         .period-area.visible { display: block; }
         .period-control { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 5px; }
@@ -135,7 +134,7 @@
                 <option value="2400">2400m</option>
             </select>
             <label style="display:flex; align-items:center; font-size:0.8rem;">
-                <input type="checkbox" id="outlierCheck" onchange="updateRanking()"> 参考記録込
+                <input type="checkbox" id="outlierCheck" onchange="updateRanking()" checked> 参考記録込
             </label>
         </div>
     </div>
@@ -184,7 +183,7 @@
                 <option value="2400">2400m</option>
             </select>
             <label style="display:flex; align-items:center; font-size:0.8rem;">
-                <input type="checkbox" id="s_outlierCheck" onchange="updateComparison()"> 参考記録込
+                <input type="checkbox" id="s_outlierCheck" onchange="updateComparison()" checked> 参考記録込
             </label>
         </div>
     </div>
@@ -234,10 +233,10 @@
 
 <script>
     // --- 変数定義 ---
-    let allRecords = [];      // 全データ（生）
-    let activeRecords = [];   // 期間フィルタ適用後のデータ（分析用）
+    let allRecords = [];      
+    let activeRecords = [];   
     let csvHeaders = []; 
-    let rawRecords = [];      // マージ処理用生データ
+    let rawRecords = [];      
     let selectedHorses = new Set(); 
     let isComparisonMode = false;
     let mergedContent = ""; 
@@ -473,7 +472,6 @@ else:
             record.seconds = parseFloat(record.seconds) || 0.0;
             record.is_outlier = (record.is_outlier === 'True' || record.is_outlier === 'true');
             
-            // 年月情報の解析 (YYYY年MM月DD日)
             const dateMatch = record.date.match(/(\d+)年(\d+)月/);
             if (dateMatch) {
                 record.year = parseInt(dateMatch[1]);
@@ -490,11 +488,10 @@ else:
         allRecords = data;
         rawRecords = rawData;
         
-        // 期間UIの構築
         setupDateFilter(minYear, maxYear);
         
-        // 初期状態では全期間
-        applyDateFilter(false);
+        // ★修正: UI更新のために true を指定
+        applyDateFilter(true);
 
         if (shouldSave) {
             saveToDB(text, fileName);
@@ -503,31 +500,24 @@ else:
         }
     }
     
-    // ★期間フィルタUI構築
     function setupDateFilter(minYear, maxYear) {
         if (allRecords.length === 0) return;
         const yearSelect = document.getElementById('startYear');
         yearSelect.innerHTML = '';
-        
-        // 年の選択肢生成 (Min 〜 Max)
         for (let y = minYear; y <= maxYear; y++) {
             const opt = document.createElement('option');
             opt.value = y;
             opt.innerText = y;
             yearSelect.appendChild(opt);
         }
-        // 初期値はMinYear
         yearSelect.value = minYear;
         document.getElementById('startMonth').value = 1;
         document.getElementById('periodFilterArea').classList.add('visible');
     }
 
-    // ★期間フィルタ実行
     function applyDateFilter(refreshUI = true) {
         const sYear = parseInt(document.getElementById('startYear').value);
         const sMonth = parseInt(document.getElementById('startMonth').value);
-        
-        // YYYYMM形式で比較
         const startVal = sYear * 100 + sMonth;
         
         activeRecords = allRecords.filter(r => {
@@ -576,7 +566,7 @@ else:
         const headerStr = csvHeaders.join(",");
         let bodyStr = "";
         const mergedList = Array.from(recordMap.values());
-        mergedList.sort((a, b) => (a.date < b.date ? 1 : -1)); // 日付降順
+        mergedList.sort((a, b) => (a.date < b.date ? 1 : -1)); 
         mergedList.forEach(r => {
             const row = csvHeaders.map(h => r[h] !== undefined ? r[h] : "").join(",");
             bodyStr += row + "\n";
@@ -609,7 +599,7 @@ else:
         URL.revokeObjectURL(url);
     }
 
-    // --- ランキング・検索 (activeRecordsを使用するように変更) ---
+    // --- ランキング・検索 ---
     function updateRanking() {
         if (activeRecords.length === 0) {
             document.getElementById('rankingList').innerHTML = '<div style="padding:20px; text-align:center; color:#999;">対象期間内のデータがありません</div>';
@@ -633,7 +623,6 @@ else:
         document.getElementById('searchResultTitle').style.display = "block";
         const query = document.getElementById('searchInput').value;
         if (!query) { document.getElementById('searchList').innerHTML = ''; return; }
-        // 馬名検索も期間フィルタ済みデータ(activeRecords)から行う
         const hits = [...new Set(activeRecords.map(r => r.horse_name))].filter(name => name.includes(query)).sort();
         const container = document.getElementById('searchList');
         container.innerHTML = '';
@@ -679,7 +668,6 @@ else:
         const track = document.getElementById('s_trackSelect').value;
         const distStr = document.getElementById('s_distSelect').value;
         const showOutlier = document.getElementById('s_outlierCheck').checked;
-        // activeRecordsから抽出
         let filtered = activeRecords.filter(r => selectedHorses.has(r.horse_name));
         filtered = filtered.filter(r => {
             return (place === '全て' || r.place === place) && (track === '全て' || r.track === track) && (distStr === '全て' || r.distance === parseInt(distStr)) && (showOutlier ? true : !r.is_outlier);
