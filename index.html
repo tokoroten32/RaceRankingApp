@@ -9,6 +9,9 @@
         header { background: #fff; padding: 15px; text-align: center; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.2rem; }
         
+        /* バージョン表示用スタイル (NEW) */
+        .version-tag { font-size: 0.8rem; color: #888; font-weight: normal; margin-left: 5px; }
+
         .file-area { padding: 15px; background: #fff; margin-bottom: 10px; text-align: center; }
         .status-box { font-size: 0.8rem; color: #666; margin-top: 8px; min-height: 1.2em; }
         .status-success { color: #34c759; font-weight: bold; }
@@ -76,7 +79,7 @@
 <body>
 
 <header>
-    <h1>競馬データ分析 Web</h1>
+    <h1>競馬データ分析 Web <span id="appVersion" class="version-tag"></span></h1>
 </header>
 
 <div class="file-area">
@@ -236,6 +239,9 @@
 </div>
 
 <script>
+    // ★バージョン管理（変更時はここを書き換える）
+    const APP_VERSION = "v1.1";
+
     // --- 変数定義 ---
     let allRecords = [];      
     let activeRecords = [];   
@@ -390,6 +396,9 @@ else:
 `;
 
     window.onload = function() {
+        // ★バージョン表示
+        document.getElementById('appVersion').innerText = "(" + APP_VERSION + ")";
+        
         openDB(); // 起動時にDBを開く
         document.getElementById('pythonCode').value = pythonScriptContent;
     };
@@ -542,7 +551,6 @@ else:
         applyDateFilter(true); 
 
         if (shouldSave) {
-            // 通常読み込み時の保存もエラーハンドリング付きで行う
             saveToDB(text, fileName, function() {
                 console.log("初期データの保存完了");
             });
