@@ -10,7 +10,7 @@
         h1 { margin: 0; font-size: 1.2rem; }
         
         .file-area { padding: 15px; background: #fff; margin-bottom: 10px; text-align: center; }
-        .status-box { font-size: 0.9rem; color: #666; margin-top: 8px; min-height: 1.2em; }
+        .status-box { font-size: 0.8rem; color: #666; margin-top: 8px; min-height: 1.2em; }
         .status-success { color: #34c759; font-weight: bold; }
         .status-loading { color: #007aff; }
         
@@ -58,7 +58,11 @@
         .hidden { display: none !important; }
 
         .update-box { text-align: center; padding: 20px; border: 2px dashed #ccc; border-radius: 10px; background: #fafafa; margin-bottom: 20px; }
-        .btn-primary { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; }
+        
+        /* ボタンのスタイル（disabled時の見た目追加） */
+        .btn-primary { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; transition: background 0.3s; }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        
         .btn-secondary { background: #8e8e93; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
         .btn-danger { background: #ff3b30; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; margin-top: 5px; }
         
@@ -79,11 +83,9 @@
     <label for="csvFile" style="font-weight:bold;">メインデータの読み込み</label><br>
     <div style="font-size:0.7rem; color:#888; margin-bottom:5px;">(※通常は自動で読み込まれます)</div>
     <input type="file" id="csvFile" accept=".csv">
-    
     <div id="fileStatus" class="status-box">データ未ロード</div>
-    
     <div id="clearDataArea" class="hidden">
-        <button class="btn-danger" onclick="clearDB()">保存データを削除してリセット</button>
+        <button class="btn-danger" onclick="clearDB()">保存データを削除</button>
     </div>
 
     <div id="periodFilterArea" class="period-area">
@@ -255,14 +257,12 @@ import pandas as pd
 import time
 import re
 import random
-import os
 from google.colab import files
 
-# ========== 設定エリア ==========
+# ========== 設定エリア (ここを変更) ==========
 TARGET_YEAR = 2025  # 取得したい年
 TARGET_MONTH = 1    # 取得したい月
-SKIP_FILENAME = "skipped_ids.txt"
-# ==============================
+# ==========================================
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -354,29 +354,15 @@ def get_race_details(race_id):
         except: continue
     return records
 
-print(f"スキップリスト({SKIP_FILENAME})を読み込み中...")
-skipped_ids = set()
-if os.path.exists(SKIP_FILENAME):
-    with open(SKIP_FILENAME, "r", encoding="utf-8") as f:
-        for line in f:
-            clean_line = line.strip()
-            if "]" in clean_line: clean_line = clean_line.split("]")[1].strip()
-            if clean_line.isdigit(): skipped_ids.add(clean_line)
-    print(f"-> {len(skipped_ids)}件のIDを無視設定しました。")
-else:
-    print(f"-> ファイルが見つかりません。全件取得します。")
-
 print(f"{TARGET_YEAR}年{TARGET_MONTH}月のデータを取得中...")
 r_ids = get_race_ids(TARGET_YEAR, TARGET_MONTH)
-target_ids = [rid for rid in r_ids if rid not in skipped_ids]
-print(f"対象レース数: {len(target_ids)}件")
-
+print(f"対象レース数: {len(r_ids)}件")
 all_data = []
-for i, rid in enumerate(target_ids):
+for i, rid in enumerate(r_ids):
     data = get_race_details(rid)
-    if data: all_data.extend(data)
+    all_data.extend(data)
     time.sleep(1)
-    if i % 10 == 0: print(f"{i}/{len(target_ids)}")
+    if i % 10 == 0: print(f"{i}/{len(r_ids)}")
 if all_data:
     df = pd.DataFrame(all_data)
     filename = f"new_data_{TARGET_YEAR}_{TARGET_MONTH}.csv"
@@ -388,7 +374,7 @@ else:
 `;
 
     window.onload = function() {
-        openDB(); // 起動時にDBを開く
+        openDB();
         document.getElementById('pythonCode').value = pythonScriptContent;
     };
 
@@ -400,29 +386,37 @@ else:
         });
     }
 
-    // --- IndexedDB処理 ---
+    // --- DB処理 ---
     function openDB() {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         request.onupgradeneeded = function(event) {
             db = event.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME);
+                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
             }
         };
         request.onsuccess = function(event) {
             db = event.target.result;
-            loadFromDB(); // DBが開けたらロード試行
+            loadFromDB();
         };
         request.onerror = function(event) { console.error("Database error"); };
     }
 
-    function saveToDB(csvText, fileName) {
+    // コールバック対応版 saveToDB
+    function saveToDB(csvText, fileName, callback) {
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
         const data = { id: 'mainCSV', content: csvText, fileName: fileName, date: new Date().toLocaleString() };
-        store.put(data).onsuccess = function() {
-            document.getElementById('fileStatus').innerHTML = `<span class="status-success">ブラウザ内に保存しました (${data.date})</span>`;
-            document.getElementById('clearDataArea').classList.remove('hidden');
+        
+        const request = store.put(data);
+        
+        request.onsuccess = function() {
+            document.getElementById('fileStatus').innerHTML = `<span class="status-success">データを更新・保存しました (${data.date})</span>`;
+            if (callback) callback();
+        };
+        
+        request.onerror = function() {
+            alert("保存に失敗しました。容量不足の可能性があります。");
         };
     }
 
@@ -432,12 +426,9 @@ else:
         store.get('mainCSV').onsuccess = function(event) {
             const result = event.target.result;
             if (result) {
-                // 保存データが見つかった場合
-                document.getElementById('fileStatus').innerHTML = `<span class="status-loading">前回保存データ (${result.date}) を展開中...</span>`;
                 setTimeout(() => {
-                    // 自動ロード時は保存処理(saveToDB)をスキップする(第2引数=false)
                     parseCSV(result.content, false); 
-                    document.getElementById('fileStatus').innerHTML = `<span class="status-success">前回データ (${result.date}) を復元しました</span>`;
+                    document.getElementById('fileStatus').innerHTML = `<span class="status-success">保存データ (${result.date}) をロードしました</span>`;
                     document.getElementById('clearDataArea').classList.remove('hidden');
                 }, 100);
             } else {
@@ -470,7 +461,6 @@ else:
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        // ファイル選択時は保存する(true)
         reader.onload = function(event) { parseCSV(event.target.result, true, file.name); };
         reader.readAsText(file);
     });
@@ -512,9 +502,7 @@ else:
         rawRecords = rawData;
         
         setupDateFilter(minYear, maxYear);
-        
-        // trueを指定してUIを即座に更新する
-        applyDateFilter(true);
+        applyDateFilter(true); // 初期表示用にフィルタ適用＆描画
 
         if (shouldSave) {
             saveToDB(text, fileName);
@@ -597,16 +585,33 @@ else:
         document.getElementById('mergeActionArea').classList.remove('hidden');
     }
 
+    // ★UI対応版 saveMergedToDB
     function saveMergedToDB() {
         if(!mergedContent) return;
-        saveToDB(mergedContent, "merged_data.csv");
-        // 即座に画面に反映
-        parseCSV(mergedContent, false); 
-        alert("アプリ内のデータを更新しました！\n次回起動時からはこのデータが自動で開きます。");
-        switchTab('ranking');
-        document.getElementById('updateFile').value = "";
-        document.getElementById('updateResult').innerHTML = "";
-        document.getElementById('mergeActionArea').classList.add('hidden');
+        
+        const btn = document.getElementById('saveInternalBtn');
+        const originalText = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = "⏳ 保存処理中...";
+        
+        // コールバック付きで保存を実行
+        saveToDB(mergedContent, "merged_data.csv", function() {
+            // 保存完了後の処理
+            parseCSV(mergedContent, false); 
+            
+            // UIリセット
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            document.getElementById('updateFile').value = "";
+            document.getElementById('updateResult').innerHTML = "";
+            document.getElementById('mergeActionArea').classList.add('hidden');
+
+            setTimeout(() => {
+                alert("✅ 保存が完了しました！\n\n最新データでランキングを表示します。");
+                switchTab('ranking');
+            }, 100);
+        });
     }
 
     function downloadMergedCSV() {
