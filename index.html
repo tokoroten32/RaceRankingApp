@@ -6,10 +6,32 @@
     <title>競馬データ分析 Web</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
+        :root { --base-font-size: 16px; }
+        html { font-size: var(--base-font-size); }
+
         body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; margin: 0; padding: 0; background: #f2f2f7; color: #333; }
-        header { background: #fff; padding: 15px; text-align: center; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 100; }
+        
+        header { background: #fff; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.2rem; }
-        .version-tag { font-size: 0.8rem; color: #888; font-weight: normal; margin-left: 5px; }
+        .version-tag { font-size: 0.7rem; color: #888; font-weight: normal; margin-left: 5px; vertical-align: middle; }
+
+        .settings-btn { background: none; border: 1px solid #ccc; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 0.9rem; color: #555; }
+        
+        /* モーダル共通 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: none; justify-content: center; align-items: center; }
+        .modal-box { background: #fff; padding: 20px; border-radius: 10px; width: 90%; max-width: 350px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; flex-direction: column; max-height: 80vh; }
+        
+        /* ヘルプ用モーダル拡張 */
+        .modal-box.help-box { max-width: 600px; }
+        .help-content { overflow-y: auto; text-align: left; margin-bottom: 15px; padding-right: 5px; font-size: 0.9rem; line-height: 1.6; }
+        .help-section { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .help-section:last-child { border-bottom: none; }
+        .help-title { font-weight: bold; color: #007aff; margin-bottom: 5px; font-size: 1rem; }
+
+        .modal-title { font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; font-size: 1.1rem; text-align: center; }
+        .menu-item { margin-bottom: 15px; }
+        .menu-label { display: block; font-size: 0.9rem; color: #666; margin-bottom: 5px; }
+        .menu-control { width: 100%; padding: 8px; font-size: 1rem; border: 1px solid #ddd; border-radius: 5px; }
 
         .file-area { padding: 15px; background: #fff; margin-bottom: 10px; text-align: center; }
         .status-box { font-size: 0.9rem; color: #666; margin-top: 8px; min-height: 1.5em; font-weight: bold; }
@@ -32,15 +54,16 @@
         .record-item { background: #fff; padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .record-item:last-child { border-bottom: none; }
         
-        .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; font-size: 0.9rem; flex-shrink: 0; }
+        .rank-badge { width: 2.2em; height: 2.2em; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; font-size: 0.9rem; flex-shrink: 0; }
         .rank-1 { background: gold; color: #fff; }
         .rank-2 { background: silver; color: #fff; }
         .rank-3 { background: #cd7f32; color: #fff; }
         .rank-other { background: #eee; color: #333; }
+        
         .horse-name { font-weight: bold; font-size: 1.1rem; display: block; }
         .meta-info { font-size: 0.8rem; color: #666; }
         .time-str { font-weight: bold; font-size: 1.2rem; font-family: monospace; }
-        .condition { font-size: 0.7rem; color: #999; }
+        .condition { font-size: 0.75rem; color: #999; }
         .outlier { color: red; }
         .ref-text { color: red; font-size: 0.7rem; }
         
@@ -56,8 +79,10 @@
 
         .update-box { text-align: center; padding: 20px; border: 2px dashed #ccc; border-radius: 10px; background: #fafafa; margin-bottom: 20px; }
         .btn-primary { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; }
-        .btn-secondary { background: #8e8e93; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
-        .btn-danger { background: #ff3b30; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; margin-top: 5px; }
+        .btn-secondary { background: #8e8e93; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; width: 100%; }
+        .btn-danger { background: #ff3b30; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; width: 100%; }
+        .btn-help { background: #34c759; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; width: 100%; margin-bottom: 10px; }
+
         .script-area { text-align: left; margin-bottom: 20px; }
         .code-box { width: 100%; height: 100px; font-family: monospace; font-size: 0.8rem; border: 1px solid #ddd; border-radius: 5px; padding: 5px; background: #f0f0f0; color: #555; box-sizing: border-box; resize: vertical; }
         .btn-copy { background: #5856d6; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; margin-right: 5px; }
@@ -67,17 +92,92 @@
 <body>
 
 <header>
-    <h1>競馬データ分析 Web <span id="appVersion" class="version-tag">v3.2 (Date Display)</span></h1>
+    <h1>競馬データ分析 <span id="appVersion" class="version-tag">v3.5</span></h1>
+    <button class="settings-btn" onclick="toggleMenu()">⚙️ 設定</button>
 </header>
+
+<div id="menuModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">設定</div>
+        
+        <div class="menu-item">
+            <button class="btn-help" onclick="toggleHelp()">📖 アプリの使い方を見る</button>
+        </div>
+
+        <div class="menu-item">
+            <span class="menu-label">文字サイズ</span>
+            <select id="fontSizeSelect" class="menu-control" onchange="changeFontSize(this.value)">
+                <option value="small">小</option>
+                <option value="medium" selected>中 (標準)</option>
+                <option value="large">大</option>
+            </select>
+        </div>
+
+        <div class="menu-item">
+            <span class="menu-label">データ管理</span>
+            <button class="btn-danger" onclick="clearDB()">保存済みデータを削除</button>
+        </div>
+
+        <button class="btn-secondary" onclick="toggleMenu()">閉じる</button>
+    </div>
+</div>
+
+<div id="helpModal" class="modal-overlay">
+    <div class="modal-box help-box">
+        <div class="modal-title">📖 アプリの使い方</div>
+        
+        <div class="help-content">
+            <div class="help-section">
+                <div class="help-title">1. はじめに</div>
+                初回利用時は、「メインデータの読み込み」からCSVファイルを選択してください。<br>
+                データはブラウザ内に保存されるため、次回からは自動的にロードされます。
+            </div>
+
+            <div class="help-section">
+                <div class="help-title">2. ランキング機能</div>
+                場所・トラック（芝/ダート）・距離を指定すると、タイムの早い順にランキング表示されます。<br>
+                <ul>
+                    <li><strong>対象期間:</strong> ファイル上部のプルダウンで、集計期間（何年の何月から最新まで）を変更できます。</li>
+                    <li><strong>参考記録込:</strong> チェックを入れると、異常値判定（極端に早い/遅い）されたデータも表示します。</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <div class="help-title">3. 馬検索・比較</div>
+                馬名の一部を入力して検索できます。<br>
+                検索結果の「＋」ボタンを押すと、その馬を<strong>「比較リスト」</strong>に追加できます。<br>
+                複数の馬を選択した状態で「履歴を比較」ボタンを押すと、選択した馬同士の過去走を一覧で比較できます。
+            </div>
+
+            <div class="help-section">
+                <div class="help-title">4. データの追加・更新</div>
+                新しいデータ（翌週分など）を追加したい場合は、「データ追加」タブを使用します。<br>
+                <ol>
+                    <li>Google Colabなどで最新のCSVを取得する。</li>
+                    <li>「データ追加」タブでそのファイルを選択する。</li>
+                    <li>「追記して保存」ボタンを押す。</li>
+                </ol>
+                ※データ量が多い場合は、PC上で結合してから再登録することをお勧めします。
+            </div>
+            
+            <div class="help-section">
+                <div class="help-title">5. その他</div>
+                <ul>
+                    <li><strong>文字サイズ:</strong> 設定メニューから大・中・小を変更できます。</li>
+                    <li><strong>データ削除:</strong> 動作が重い場合などは、設定メニューからデータを削除してリセットしてください。</li>
+                </ul>
+            </div>
+        </div>
+
+        <button class="btn-secondary" onclick="toggleHelp()">閉じる</button>
+    </div>
+</div>
 
 <div class="file-area">
     <label for="csvFile" style="font-weight:bold;">メインデータの読み込み</label><br>
     <div style="font-size:0.7rem; color:#888; margin-bottom:5px;">(※180MB超のファイルもサクサク動作します)</div>
     <input type="file" id="csvFile" accept=".csv">
     <div id="fileStatus" class="status-box">データ未ロード</div>
-    <div id="clearDataArea" class="hidden">
-        <button class="btn-danger" onclick="clearDB()">保存データを削除してリセット</button>
-    </div>
 
     <div id="periodFilterArea" class="period-area">
         <div style="font-size:0.8rem; font-weight:bold; color:#007aff;">▼ 対象期間の設定</div>
@@ -366,11 +466,37 @@ else:
     window.onload = function() {
         openDB();
         document.getElementById('pythonCode').value = pythonScriptContent;
+        const savedSize = localStorage.getItem('keiba_font_size') || 'medium';
+        document.getElementById('fontSizeSelect').value = savedSize;
+        changeFontSize(savedSize);
     };
 
     function copyScript() {
         const c = document.getElementById("pythonCode"); c.select();
         navigator.clipboard.writeText(c.value).then(()=>alert("コピーしました"));
+    }
+
+    // --- メニュー・ヘルプ操作 ---
+    function toggleMenu() {
+        const m = document.getElementById('menuModal');
+        m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+    }
+    
+    function toggleHelp() {
+        const h = document.getElementById('helpModal');
+        h.style.display = (h.style.display === 'flex') ? 'none' : 'flex';
+        // ヘルプを開くときは設定メニューを閉じる
+        if(h.style.display === 'flex') {
+            document.getElementById('menuModal').style.display = 'none';
+        }
+    }
+
+    function changeFontSize(size) {
+        let pxVal = '16px';
+        if (size === 'small') pxVal = '13px';
+        if (size === 'large') pxVal = '20px';
+        document.documentElement.style.setProperty('--base-font-size', pxVal);
+        localStorage.setItem('keiba_font_size', size);
     }
 
     // --- Helper: 動的ID管理 ---
@@ -379,7 +505,6 @@ else:
         if(!val) return 0; 
         const dic = Dicts[type];
         if(dic.map.hasOwnProperty(val)) return dic.map[val];
-        // 新出の単語なら登録
         const idx = dic.list.length;
         dic.list.push(val);
         dic.map[val] = idx;
@@ -424,7 +549,7 @@ else:
                 setTimeout(() => {
                     loadCSV(res.content, false);
                     document.getElementById('fileStatus').innerHTML = `<span class="status-success">復元完了 (${res.date})</span>`;
-                    document.getElementById('clearDataArea').classList.remove('hidden');
+                    document.getElementById('clearDataArea').classList.remove('hidden'); // hidden削除して念のため
                 }, 100);
             } else {
                 document.getElementById('fileStatus').innerText = "データ未ロード";
@@ -456,7 +581,7 @@ else:
         Dicts.cond={list:["-"],map:{"-":0}};
 
         let minYear = 9999, maxYear = 0;
-        let maxDateVal = 0; // ★最新日付用
+        let maxDateVal = 0; 
 
         document.getElementById('fileStatus').innerHTML = '<span class="status-loading">解析中...</span>';
 
@@ -492,7 +617,7 @@ else:
                     }
                 }
                 const dateInt = y * 10000 + m * 100 + d;
-                if(dateInt > maxDateVal) maxDateVal = dateInt; // ★最大日付を更新
+                if(dateInt > maxDateVal) maxDateVal = dateInt;
                 DB.dates.push(dateInt);
             },
             complete: function() {
@@ -501,7 +626,7 @@ else:
                     saveToDB(blob, file.name || "data.csv");
                 }
                 updateSelectOptions(); 
-                setupDateFilter(minYear, maxYear, maxDateVal); // ★日付を渡す
+                setupDateFilter(minYear, maxYear, maxDateVal);
                 applyDateFilter(true);
             },
             error: function(err) { alert("エラー: " + err.message); }
@@ -546,7 +671,6 @@ else:
         document.getElementById('startMonth').value = 1;
         document.getElementById('periodFilterArea').classList.add('visible');
 
-        // ★最新日付表示の更新
         const endLabel = document.getElementById('endDateLabel');
         if(maxDateVal > 0) {
             const y = Math.floor(maxDateVal / 10000);
@@ -714,6 +838,7 @@ else:
         });
     }
 
+    // --- Merge ---
     document.getElementById('updateFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if(!file) return;
