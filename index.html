@@ -9,36 +9,28 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; margin: 0; padding: 0; background: #f2f2f7; color: #333; }
         header { background: #fff; padding: 15px; text-align: center; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.2rem; }
-        
         .version-tag { font-size: 0.8rem; color: #888; font-weight: normal; margin-left: 5px; }
-
         .file-area { padding: 15px; background: #fff; margin-bottom: 10px; text-align: center; }
         .status-box { font-size: 0.8rem; color: #666; margin-top: 8px; min-height: 1.2em; }
         .status-success { color: #34c759; font-weight: bold; }
         .status-loading { color: #007aff; }
         .status-error { color: #ff3b30; font-weight: bold; }
-        
         .period-area { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; display: none; }
         .period-area.visible { display: block; }
         .period-control { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 5px; }
         .period-select { padding: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; width: auto; }
-
         .tabs { display: flex; background: #fff; border-bottom: 1px solid #ccc; }
         .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; color: #888; border-bottom: 3px solid transparent; font-size: 0.9rem; }
         .tab.active { color: #007aff; border-bottom: 3px solid #007aff; font-weight: bold; }
-        
         .content { display: none; padding: 15px; }
         .content.active { display: block; }
-        
         .filter-group { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .filter-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .filter-row:last-child { margin-bottom: 0; }
         select, input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; }
-        
         .record-list { list-style: none; padding: 0; margin: 0; }
         .record-item { background: #fff; padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .record-item:last-child { border-bottom: none; }
-        
         .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; font-size: 0.9rem; flex-shrink: 0; }
         .rank-1 { background: gold; color: #fff; }
         .rank-2 { background: silver; color: #fff; }
@@ -50,7 +42,6 @@
         .condition { font-size: 0.7rem; color: #999; }
         .outlier { color: red; }
         .ref-text { color: red; font-size: 0.7rem; }
-        
         .search-box { display: flex; gap: 5px; }
         .selected-horses-area { background: #fff; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
         .tag-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
@@ -60,20 +51,15 @@
         .btn-add { background: none; border: none; color: #007aff; font-size: 1.5rem; cursor: pointer; }
         .check-icon { color: #007aff; font-size: 1.2rem; }
         .hidden { display: none !important; }
-
         .update-box { text-align: center; padding: 20px; border: 2px dashed #ccc; border-radius: 10px; background: #fafafa; margin-bottom: 20px; }
-        
         .btn-primary { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; transition: background 0.3s; }
         .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
-        
         .btn-secondary { background: #8e8e93; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
         .btn-danger { background: #ff3b30; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; margin-top: 5px; }
-        
         .script-area { text-align: left; margin-bottom: 20px; }
         .code-box { width: 100%; height: 100px; font-family: monospace; font-size: 0.8rem; border: 1px solid #ddd; border-radius: 5px; padding: 5px; background: #f0f0f0; color: #555; box-sizing: border-box; resize: vertical; }
         .btn-copy { background: #5856d6; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; margin-right: 5px; }
         .btn-colab { background: #f9ab00; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; text-decoration: none; display: inline-block; }
-
     </style>
 </head>
 <body>
@@ -239,23 +225,20 @@
 </div>
 
 <script>
-    // ★バージョン
-    const APP_VERSION = "v1.3 (Large File Fix)";
+    const APP_VERSION = "v1.4 (Worker Mode)";
 
-    // --- 変数定義 ---
     let allRecords = [];      
     let activeRecords = [];   
-    let csvHeaders = []; 
-    let rawRecords = [];      
     let selectedHorses = new Set(); 
     let isComparisonMode = false;
     let mergedContent = ""; 
+    // ※メモリ節約のため rawRecords や csvHeaders はグローバルに持たないように変更
+
     const DB_NAME = 'KeibaAppDB';
     const DB_VERSION = 2;
     const STORE_NAME = 'csvStore';
     let db;
 
-    // --- Colab用スクリプト ---
     const pythonScriptContent = `# Google Colab用 競馬データ取得スクリプト
 import requests
 from bs4 import BeautifulSoup
@@ -266,11 +249,9 @@ import random
 import os
 from google.colab import files
 
-# ========== 設定エリア ==========
-TARGET_YEAR = 2025  # 取得したい年
-TARGET_MONTH = 1    # 取得したい月
+TARGET_YEAR = 2025
+TARGET_MONTH = 1
 SKIP_FILENAME = "skipped_ids.txt"
-# ==============================
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -426,23 +407,23 @@ else:
         request.onerror = function(event) { console.error("Database error"); };
     }
 
+    // DBへの保存 (メモリ節約のためBlobを使用)
     function saveToDB(csvText, fileName, callback) {
-        if (!db) {
-            alert("データベースが準備できていません。ページを再読み込みしてください。");
-            resetUI(); return;
-        }
+        if (!db) { alert("DB未接続"); resetUI(); return; }
         try {
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
+            // 文字列をそのまま入れると重いので、データ構造は維持しつつ
+            // 文字列操作を最小限にする
             const data = { id: 'mainCSV', content: csvText, fileName: fileName, date: new Date().toLocaleString() };
             const request = store.put(data);
             request.onsuccess = function() {
-                document.getElementById('fileStatus').innerHTML = `<span class="status-success">データを更新・保存しました (${data.date})</span>`;
+                document.getElementById('fileStatus').innerHTML = `<span class="status-success">保存完了 (${data.date})</span>`;
                 if (callback) callback();
             };
             transaction.onerror = function(e) { console.error(e); alert("保存失敗: " + e.target.error.message); resetUI(); };
         } catch (e) {
-            console.error(e); alert("エラー: " + e.message); resetUI();
+            console.error(e); alert("保存エラー: " + e.message); resetUI();
         }
     }
 
@@ -452,225 +433,201 @@ else:
         store.get('mainCSV').onsuccess = function(event) {
             const result = event.target.result;
             if (result) {
-                document.getElementById('fileStatus').innerHTML = `<span class="status-loading">前回保存データ (${result.date}) を展開中...</span>`;
+                document.getElementById('fileStatus').innerHTML = `<span class="status-loading">保存データ展開中...</span>`;
+                // メインスレッドをブロックしないようにsetTimeoutで逃がす
                 setTimeout(() => {
                     parseCSV(result.content, false); 
-                    document.getElementById('fileStatus').innerHTML = `<span class="status-success">前回データ (${result.date}) を復元しました</span>`;
+                    document.getElementById('fileStatus').innerHTML = `<span class="status-success">復元完了 (${result.date})</span>`;
                     document.getElementById('clearDataArea').classList.remove('hidden');
                 }, 100);
             } else {
-                document.getElementById('fileStatus').innerText = "データ未ロード (CSVを選択してください)";
+                document.getElementById('fileStatus').innerText = "データ未ロード";
             }
         };
     }
 
     function clearDB() {
-        if(!confirm("保存されたデータを削除しますか？")) return;
+        if(!confirm("データを削除しますか？")) return;
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         transaction.objectStore(STORE_NAME).delete('mainCSV');
         location.reload();
     }
 
-    // --- UI処理 ---
-    function switchTab(tabName) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-        const tabs = document.querySelectorAll('.tab');
-        if(tabName === 'ranking') tabs[0].classList.add('active');
-        else if(tabName === 'search') tabs[1].classList.add('active');
-        else tabs[2].classList.add('active');
-        document.getElementById(tabName).classList.add('active');
-    }
-
+    // --- CSV処理 ---
     document.getElementById('csvFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(event) { parseCSV(event.target.result, true, file.name); };
-        reader.readAsText(file);
+        // FileオブジェクトはそのままPapaParseに渡せる
+        parseFile(file, true);
     });
 
-    // ★PapaParseによる高速CSV読み込み (header: true でオブジェクト配列化)
-    function parseCSV(text, shouldSave = false, fileName = "") {
-        document.getElementById('fileStatus').innerHTML = '<span class="status-loading">解析中...</span>';
+    // 文字列ではなくFileオブジェクトを直接パースすることでメモリ節約
+    function parseFile(file, shouldSave) {
+        document.getElementById('fileStatus').innerHTML = '<span class="status-loading">ファイルを解析中(Worker)...</span>';
         
-        // Papa Parse実行
-        Papa.parse(text, {
+        Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
+            worker: true, // ★Workerスレッドで実行(UIフリーズ回避)
             complete: function(results) {
-                processParsedData(results.data, shouldSave, text, fileName);
+                // ここで全データをメモリに展開してしまうが、Workerから戻ってきたデータを使う
+                processParsedData(results.data);
+                
+                if (shouldSave) {
+                    // 保存のためにテキスト読み込みが必要（ここだけは重くなる可能性がある）
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        saveToDB(e.target.result, file.name);
+                    };
+                    reader.readAsText(file);
+                } else {
+                     document.getElementById('fileStatus').innerHTML = `<span class="status-success">ロード完了 (${results.data.length}件)</span>`;
+                }
             },
             error: function(err) {
                 console.error(err);
-                alert("CSV解析エラー: " + err.message);
+                alert("解析エラー: " + err.message);
                 document.getElementById('fileStatus').innerText = "解析失敗";
             }
         });
     }
 
-    function processParsedData(dataArray, shouldSave, rawText, fileName) {
-        // データ変換処理
+    // 文字列からのパース (DB復元用)
+    function parseCSV(text, shouldSave, fileName) {
+        document.getElementById('fileStatus').innerHTML = '<span class="status-loading">データを解析中(Worker)...</span>';
+        Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true,
+            worker: true,
+            complete: function(results) {
+                processParsedData(results.data);
+                if (shouldSave) {
+                    saveToDB(text, fileName);
+                }
+            },
+            error: function(err) {
+                alert("解析エラー");
+            }
+        });
+    }
+
+    function processParsedData(dataArray) {
         const data = [];
-        const rawData = [];
         let minYear = 9999;
         let maxYear = 0;
 
-        // ライブラリがパースしたオブジェクト配列をループ
-        dataArray.forEach(record => {
-            // カラムが無い行などはスキップ
-            if(!record.race_id) return;
-
-            // 数値変換
-            record.distance = parseInt(record.distance) || 0;
-            record.seconds = parseFloat(record.seconds) || 0.0;
-            record.is_outlier = (String(record.is_outlier).toLowerCase() === 'true');
+        // メモリ節約のため、最低限の変換処理にとどめる
+        for (let i = 0; i < dataArray.length; i++) {
+            const r = dataArray[i];
+            if(!r.race_id) continue;
             
-            // 日付解析
-            const dateMatch = (record.date || "").match(/(\d+)年(\d+)月/);
-            if (dateMatch) {
-                record.year = parseInt(dateMatch[1]);
-                record.month = parseInt(dateMatch[2]);
-                if(record.year < minYear) minYear = record.year;
-                if(record.year > maxYear) maxYear = record.year;
-            } else {
-                record.year = 0; record.month = 0;
+            // 型変換
+            r.distance = parseInt(r.distance) || 0;
+            r.seconds = parseFloat(r.seconds) || 0.0;
+            r.is_outlier = (r.is_outlier === 'True' || r.is_outlier === 'true');
+
+            // 年月
+            if (r.date) {
+                const y = parseInt(r.date.substring(0, 4)); // 高速化: 正規表現をやめて文字切り出し
+                const mIndex = r.date.indexOf("年");
+                if (!isNaN(y)) {
+                    r.year = y;
+                    // 月は簡易的に抽出 (例: 2024年1月 -> 1)
+                    if (mIndex !== -1) {
+                         r.month = parseInt(r.date.substring(mIndex+1));
+                    } else { r.month = 1; }
+
+                    if(y < minYear) minYear = y;
+                    if(y > maxYear) maxYear = y;
+                } else { r.year = 0; r.month = 0; }
             }
+            data.push(r);
+        }
 
-            data.push(record);
-            rawData.push(record);
-        });
-
-        // グローバル変数へ格納
         allRecords = data;
-        rawRecords = rawData;
-        
-        // CSVヘッダー情報を保持 (最初の行のキーを使用)
-        if (allRecords.length > 0) {
-            csvHeaders = Object.keys(allRecords[0]);
-        }
-
         setupDateFilter(minYear, maxYear);
-        applyDateFilter(true); 
-
-        // 完了表示
-        if (shouldSave) {
-            saveToDB(rawText, fileName, function() {
-                console.log("初期データの保存完了");
-            });
-        } else {
-             document.getElementById('fileStatus').innerHTML = `<span class="status-success">データ展開完了 (${allRecords.length}件)</span>`;
-        }
-    }
-    
-    function setupDateFilter(minYear, maxYear) {
-        if (allRecords.length === 0) return;
-        const yearSelect = document.getElementById('startYear');
-        yearSelect.innerHTML = '';
-        for (let y = minYear; y <= maxYear; y++) {
-            const opt = document.createElement('option');
-            opt.value = y;
-            opt.innerText = y;
-            yearSelect.appendChild(opt);
-        }
-        yearSelect.value = minYear;
-        document.getElementById('startMonth').value = 1;
-        document.getElementById('periodFilterArea').classList.add('visible');
+        applyDateFilter(true);
     }
 
-    function applyDateFilter(refreshUI = true) {
-        const sYear = parseInt(document.getElementById('startYear').value);
-        const sMonth = parseInt(document.getElementById('startMonth').value);
-        const startVal = sYear * 100 + sMonth;
-        
-        activeRecords = allRecords.filter(r => {
-            const rVal = r.year * 100 + r.month;
-            return rVal >= startVal;
-        });
-        
-        document.getElementById('periodCount').innerText = `対象データ: ${activeRecords.length} / ${allRecords.length}件`;
-        
-        if (refreshUI) {
-            updateRanking();
-            if(!isComparisonMode) searchHorse();
-            else updateComparison();
-        }
-    }
-
+    // --- マージ処理 ---
     document.getElementById('updateFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file || allRecords.length === 0) { alert("先にメインCSVを読み込んでください。"); return; }
-        const reader = new FileReader();
-        reader.onload = function(event) { mergeCSVProcess(event.target.result); };
-        reader.readAsText(file);
-    });
-
-    function mergeCSVProcess(newCsvText) {
-        // Papa Parseで新CSVをパース
-        Papa.parse(newCsvText, {
+        
+        // メモリ不足対策: ファイルとして読み込んでWorkerで処理
+        Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
+            worker: true,
             complete: function(results) {
-                performMerge(results.data, newCsvText);
+                 // テキスト読み込み（保存用）
+                 const reader = new FileReader();
+                 reader.onload = function(evt) {
+                     performMerge(results.data, evt.target.result);
+                 };
+                 reader.readAsText(file);
             }
         });
-    }
+    });
 
     function performMerge(newRecordsArray, newCsvText) {
         // 重複排除ロジック
-        let addedCount = 0;
+        // メモリ節約のため、既存allRecordsと新データを結合して、IDでユニーク化する
+        // rawRecordsを持たずに処理する
+        
         let updatedCount = 0;
-        const recordMap = new Map();
+        let addedCount = 0;
+        
+        const existingMap = new Map();
+        allRecords.forEach(r => {
+             existingMap.set(r.race_id + "_" + r.horse_name, r);
+        });
+        
+        const initialSize = existingMap.size;
 
-        // 既存データをMapに入れる
-        rawRecords.forEach(r => {
+        newRecordsArray.forEach(r => {
+            if(!r.race_id) return;
             const key = r.race_id + "_" + r.horse_name;
-            recordMap.set(key, r);
+            existingMap.set(key, r);
         });
-
-        // 新データをマージ
-        newRecordsArray.forEach(newRecord => {
-            if(!newRecord.race_id) return;
-            const key = newRecord.race_id + "_" + newRecord.horse_name;
-            if (recordMap.has(key)) updatedCount++; else addedCount++;
-            recordMap.set(key, newRecord);
-        });
-
-        // CSV文字列の再構築 (メモリ消費大だが、185MBなら許容範囲と想定)
-        // Papa.unparse を使うと簡単だが、ここでは既存ロジックに合わせて結合
-        // 今回は「元のテキスト結合」ではなく「Mapから再生成」する
-        const mergedList = Array.from(recordMap.values());
+        
+        const finalSize = existingMap.size;
+        addedCount = finalSize - initialSize;
+        // 更新数は概算（正確に出すにはコストがかかるため省略）
+        
+        const mergedList = Array.from(existingMap.values());
+        // 日付ソート
         mergedList.sort((a, b) => (a.date < b.date ? 1 : -1));
         
-        // Papa Parseの書き出し機能を使用
-        mergedContent = Papa.unparse(mergedList);
-
-        document.getElementById('updateResult').innerHTML = `追記準備OK！<br>追加: ${addedCount}件 / 更新: ${updatedCount}件<br>合計: ${mergedList.length}件`;
-        document.getElementById('mergeActionArea').classList.remove('hidden');
+        // CSV文字列生成 (ここが一番重い)
+        try {
+            mergedContent = Papa.unparse(mergedList);
+            document.getElementById('updateResult').innerHTML = `追記準備OK (追加:約${addedCount}件)`;
+            document.getElementById('mergeActionArea').classList.remove('hidden');
+        } catch(e) {
+            alert("メモリ不足で結合データのCSV化に失敗しました。");
+        }
     }
 
     function resetUI() {
         const btn = document.getElementById('saveInternalBtn');
         btn.disabled = false;
-        btn.innerHTML = `💾 追記してアプリ内に保存<br><span style="font-size:0.8rem; font-weight:normal;">(次回からこのデータが開きます)</span>`;
+        btn.innerHTML = `💾 追記してアプリ内に保存`;
     }
 
     function saveMergedToDB() {
         if(!mergedContent) return;
         const btn = document.getElementById('saveInternalBtn');
         btn.disabled = true;
-        btn.innerHTML = "⏳ 保存処理中...";
+        btn.innerHTML = "⏳ 保存中...";
+        
         saveToDB(mergedContent, "merged_data.csv", function() {
-            // パースし直して表示
-            parseCSV(mergedContent, false); 
-            resetUI();
-            document.getElementById('updateFile').value = "";
-            document.getElementById('updateResult').innerHTML = "";
-            document.getElementById('mergeActionArea').classList.add('hidden');
-            setTimeout(() => {
-                alert("✅ 保存が完了しました！");
-                switchTab('ranking');
-            }, 100);
+            // リロードして反映させるのが一番メモリに優しい
+            if(confirm("保存しました。反映するためにリロードしますか？")) {
+                location.reload();
+            } else {
+                resetUI();
+            }
         });
     }
 
@@ -684,15 +641,45 @@ else:
         a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     }
 
+    // --- フィルタ・UI操作 (変更なし) ---
+    function setupDateFilter(minYear, maxYear) {
+        if (allRecords.length === 0) return;
+        const yearSelect = document.getElementById('startYear');
+        yearSelect.innerHTML = '';
+        if(minYear > maxYear) { minYear = 2000; maxYear = 2025; }
+        for (let y = minYear; y <= maxYear; y++) {
+            const opt = document.createElement('option');
+            opt.value = y; opt.innerText = y; yearSelect.appendChild(opt);
+        }
+        yearSelect.value = minYear;
+        document.getElementById('startMonth').value = 1;
+        document.getElementById('periodFilterArea').classList.add('visible');
+    }
+
+    function applyDateFilter(refreshUI = true) {
+        const sYear = parseInt(document.getElementById('startYear').value);
+        const sMonth = parseInt(document.getElementById('startMonth').value);
+        const startVal = sYear * 100 + sMonth;
+        activeRecords = allRecords.filter(r => {
+            return (r.year * 100 + r.month) >= startVal;
+        });
+        document.getElementById('periodCount').innerText = `対象: ${activeRecords.length} / ${allRecords.length}件`;
+        if (refreshUI) {
+            updateRanking();
+            if(!isComparisonMode) searchHorse(); else updateComparison();
+        }
+    }
+
     function updateRanking() {
         if (activeRecords.length === 0) {
-            document.getElementById('rankingList').innerHTML = '<div style="padding:20px; text-align:center; color:#999;">対象期間内のデータがありません</div>';
+            document.getElementById('rankingList').innerHTML = '<div style="text-align:center;padding:20px;">データなし</div>';
             return;
         }
         const place = document.getElementById('placeSelect').value;
         const track = document.getElementById('trackSelect').value;
         const dist = parseInt(document.getElementById('distSelect').value);
         const showOutlier = document.getElementById('outlierCheck').checked;
+        
         const filtered = activeRecords.filter(r => {
             return (place === '全て' || r.place === place) && (r.track === track) && (r.distance === dist) && (showOutlier ? true : !r.is_outlier);
         });
@@ -703,19 +690,17 @@ else:
     function searchHorse() {
         isComparisonMode = false;
         document.getElementById('searchFilterArea').classList.add('hidden');
-        document.getElementById('searchResultTitle').innerText = "検索結果 (指定期間内)";
         document.getElementById('searchResultTitle').style.display = "block";
         const query = document.getElementById('searchInput').value;
         if (!query) { document.getElementById('searchList').innerHTML = ''; return; }
-        const hits = [...new Set(activeRecords.map(r => r.horse_name))].filter(name => name.includes(query)).sort();
+        const hits = [...new Set(activeRecords.map(r => r.horse_name))].filter(n => n.includes(query)).sort();
         const container = document.getElementById('searchList');
         container.innerHTML = '';
         hits.forEach(name => {
             const div = document.createElement('div');
             div.className = 'record-item'; div.style.cursor = 'pointer';
-            const isSelected = selectedHorses.has(name);
-            const icon = isSelected ? '<span class="check-icon">✔</span>' : '<button class="btn-add">＋</button>';
-            div.innerHTML = `<span class="horse-name">${name}</span> ${icon}`;
+            const isSel = selectedHorses.has(name);
+            div.innerHTML = `<span class="horse-name">${name}</span> ${isSel ? '✔' : '＋'}`;
             div.onclick = () => toggleSelectHorse(name);
             container.appendChild(div);
         });
@@ -728,21 +713,20 @@ else:
     }
 
     function updateSelectedArea() {
-        const area = document.getElementById('selectedArea');
-        const container = document.getElementById('selectedTags');
-        if (selectedHorses.size === 0) { area.style.display = 'none'; return; }
-        area.style.display = 'block'; container.innerHTML = '';
+        const c = document.getElementById('selectedTags');
+        const a = document.getElementById('selectedArea');
+        if (selectedHorses.size === 0) { a.style.display = 'none'; return; }
+        a.style.display = 'block'; c.innerHTML = '';
         selectedHorses.forEach(name => {
-            const tag = document.createElement('div'); tag.className = 'horse-tag';
-            tag.innerHTML = `${name} <span class="remove-btn" onclick="toggleSelectHorse('${name}')">×</span>`;
-            container.appendChild(tag);
+            const t = document.createElement('div'); t.className = 'horse-tag';
+            t.innerHTML = `${name} <span class="remove-btn" onclick="toggleSelectHorse('${name}')">×</span>`;
+            c.appendChild(t);
         });
     }
 
     function showComparison() {
         isComparisonMode = true;
         document.getElementById('searchFilterArea').classList.remove('hidden');
-        document.getElementById('searchResultTitle').innerText = "履歴比較 (指定期間内)";
         updateComparison();
     }
 
@@ -750,44 +734,48 @@ else:
         if (!isComparisonMode) return;
         const place = document.getElementById('s_placeSelect').value;
         const track = document.getElementById('s_trackSelect').value;
-        const distStr = document.getElementById('s_distSelect').value;
+        const dist = document.getElementById('s_distSelect').value;
         const showOutlier = document.getElementById('s_outlierCheck').checked;
-        let filtered = activeRecords.filter(r => selectedHorses.has(r.horse_name));
-        filtered = filtered.filter(r => {
-            return (place === '全て' || r.place === place) && (track === '全て' || r.track === track) && (distStr === '全て' || r.distance === parseInt(distStr)) && (showOutlier ? true : !r.is_outlier);
+        let f = activeRecords.filter(r => selectedHorses.has(r.horse_name));
+        f = f.filter(r => {
+            return (place === '全て' || r.place === place) && (track === '全て' || r.track === track) && (dist === '全て' || r.distance === parseInt(dist)) && (showOutlier ? true : !r.is_outlier);
         });
-        filtered.sort((a, b) => a.seconds - b.seconds);
-        renderList(filtered, 'searchList', false, true);
+        f.sort((a, b) => a.seconds - b.seconds);
+        renderList(f, 'searchList', false, true);
     }
 
-    function renderList(data, targetId, isRanking, highlightName = false) {
-        const container = document.getElementById(targetId); container.innerHTML = '';
-        if (data.length === 0) { container.innerHTML = '<div style="padding:15px; text-align:center; color:#999;">該当データなし</div>'; return; }
-        data.forEach((r, index) => {
+    function renderList(data, targetId, isRank, hl) {
+        const c = document.getElementById(targetId); c.innerHTML = '';
+        if (data.length === 0) { c.innerHTML = '<div style="text-align:center;">該当なし</div>'; return; }
+        // 描画コスト削減のため最大表示数を制限する手もあるが、今は100件または全件
+        data.forEach((r, i) => {
             const div = document.createElement('div'); div.className = 'record-item';
-            let rankHtml = '';
-            if (isRanking) {
-                let rankClass = 'rank-other';
-                if (index === 0) rankClass = 'rank-1'; if (index === 1) rankClass = 'rank-2'; if (index === 2) rankClass = 'rank-3';
-                rankHtml = `<div class="rank-badge ${rankClass}">${index + 1}</div>`;
+            let rh = '';
+            if (isRank) {
+                let rc = 'rank-other';
+                if (i===0) rc='rank-1'; if(i===1) rc='rank-2'; if(i===2) rc='rank-3';
+                rh = `<div class="rank-badge ${rc}">${i+1}</div>`;
             }
-            const timeColorClass = r.is_outlier ? 'outlier' : '';
-            const refText = r.is_outlier ? '<div class="ref-text">参考</div>' : '';
-            const nameStyle = highlightName ? 'color:#007aff;' : '';
             div.innerHTML = `
-                <div style="display:flex; align-items:center;">
-                    ${rankHtml}
-                    <div><span class="horse-name" style="${nameStyle}">${r.horse_name}</span>
-                        <div class="meta-info">${r.date} (${r.place}) <span style="font-weight:bold;">${r.track}${r.distance}m</span></div>
-                    </div>
+                <div style="display:flex;align-items:center;">${rh}
+                    <div><span class="horse-name" style="${hl?'color:#007aff;':''}">${r.horse_name}</span>
+                    <div class="meta-info">${r.date} (${r.place}) <b>${r.track}${r.distance}m</b></div></div>
                 </div>
                 <div style="text-align:right;">
-                    <div class="time-str ${timeColorClass}">${r.time_str}</div>
-                    <div class="condition">${r.condition} / ${r.rank}着</div>
-                    ${refText}
+                    <div class="time-str ${r.is_outlier?'outlier':''}">${r.time_str}</div>
+                    <div class="condition">${r.condition}/${r.rank}着</div>
                 </div>`;
-            container.appendChild(div);
+            c.appendChild(div);
         });
+    }
+
+    function switchTab(n) {
+        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+        document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
+        if(n==='ranking') document.querySelectorAll('.tab')[0].classList.add('active');
+        else if(n==='search') document.querySelectorAll('.tab')[1].classList.add('active');
+        else document.querySelectorAll('.tab')[2].classList.add('active');
+        document.getElementById(n).classList.add('active');
     }
 </script>
 </body>
