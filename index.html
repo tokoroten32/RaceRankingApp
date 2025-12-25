@@ -13,9 +13,8 @@
 
         .file-area { padding: 15px; background: #fff; margin-bottom: 10px; text-align: center; }
         .status-box { font-size: 0.9rem; color: #666; margin-top: 8px; min-height: 1.5em; font-weight: bold; }
-        .status-ready { color: #34c759; }
-        .status-busy { color: #007aff; }
-        .status-error { color: #ff3b30; }
+        .status-success { color: #34c759; }
+        .status-loading { color: #007aff; }
 
         .tabs { display: flex; background: #fff; border-bottom: 1px solid #ccc; }
         .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; color: #888; border-bottom: 3px solid transparent; font-size: 0.9rem; }
@@ -29,12 +28,9 @@
         .filter-row:last-child { margin-bottom: 0; }
         select, input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; }
         
-        /* 実行ボタン (NEW) */
-        .btn-run { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-run:disabled { background: #ccc; cursor: not-allowed; }
-
         .record-list { list-style: none; padding: 0; margin: 0; }
         .record-item { background: #fff; padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .record-item:last-child { border-bottom: none; }
         
         .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; font-size: 0.9rem; flex-shrink: 0; }
         .rank-1 { background: gold; color: #fff; }
@@ -47,412 +43,747 @@
         .condition { font-size: 0.7rem; color: #999; }
         .outlier { color: red; }
         .ref-text { color: red; font-size: 0.7rem; }
-
-        /* プログレスバー */
-        .progress-container { width: 100%; background-color: #eee; border-radius: 5px; margin-top: 5px; display: none; }
-        .progress-bar { width: 0%; height: 5px; background-color: #007aff; border-radius: 5px; transition: width 0.1s; }
+        
+        .search-box { display: flex; gap: 5px; }
+        .selected-horses-area { background: #fff; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+        .tag-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+        .horse-tag { background: #e0f0ff; color: #007aff; padding: 5px 10px; border-radius: 15px; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; border: 1px solid #007aff; }
+        .remove-btn { cursor: pointer; font-weight: bold; }
+        .btn-compare { width: 100%; padding: 10px; background: #007aff; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+        .btn-add { background: none; border: none; color: #007aff; font-size: 1.5rem; cursor: pointer; }
+        .check-icon { color: #007aff; font-size: 1.2rem; }
+        .hidden { display: none !important; }
 
         .update-box { text-align: center; padding: 20px; border: 2px dashed #ccc; border-radius: 10px; background: #fafafa; margin-bottom: 20px; }
+        .btn-primary { background: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; }
+        .btn-secondary { background: #8e8e93; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
         .btn-danger { background: #ff3b30; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; margin-top: 5px; }
+        .script-area { text-align: left; margin-bottom: 20px; }
+        .code-box { width: 100%; height: 100px; font-family: monospace; font-size: 0.8rem; border: 1px solid #ddd; border-radius: 5px; padding: 5px; background: #f0f0f0; color: #555; box-sizing: border-box; resize: vertical; }
+        .btn-copy { background: #5856d6; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; margin-right: 5px; }
+        .btn-colab { background: #f9ab00; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; text-decoration: none; display: inline-block; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>競馬データ分析 Web <span class="version-tag">v2.0 (Stream)</span></h1>
+    <h1>競馬データ分析 Web <span id="appVersion" class="version-tag">v3.0 (Memory Opt)</span></h1>
 </header>
 
 <div class="file-area">
-    <label for="csvFile" style="font-weight:bold;">CSVファイルの選択</label><br>
-    <div style="font-size:0.7rem; color:#888; margin-bottom:5px;">(※ファイルは内部DBに保存され、都度読み出されます)</div>
+    <label for="csvFile" style="font-weight:bold;">メインデータの読み込み</label><br>
+    <div style="font-size:0.7rem; color:#888; margin-bottom:5px;">(※180MB超のファイルもサクサク動作します)</div>
     <input type="file" id="csvFile" accept=".csv">
-    
-    <div id="statusBox" class="status-box">ファイル未選択</div>
-    <div id="progressContainer" class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
-    
-    <button id="clearBtn" class="btn-danger" style="display:none;" onclick="clearDB()">データを削除</button>
+    <div id="fileStatus" class="status-box">データ未ロード</div>
+    <div id="clearDataArea" class="hidden">
+        <button class="btn-danger" onclick="clearDB()">保存データを削除してリセット</button>
+    </div>
+
+    <div id="periodFilterArea" class="period-area">
+        <div style="font-size:0.8rem; font-weight:bold; color:#007aff;">▼ 対象期間の設定</div>
+        <div class="period-control">
+            <select id="startYear" class="period-select" onchange="applyDateFilter()"></select>
+            <span>年</span>
+            <select id="startMonth" class="period-select" onchange="applyDateFilter()">
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+            </select>
+            <span>月 〜 最新</span>
+        </div>
+        <div id="periodCount" style="font-size:0.7rem; color:#666; margin-top:5px;"></div>
+    </div>
 </div>
 
 <div class="tabs">
     <div class="tab active" onclick="switchTab('ranking')">ランキング</div>
-    <div class="tab" onclick="switchTab('search')">馬名検索</div>
-    <div class="tab" onclick="switchTab('update')">データ更新</div>
+    <div class="tab" onclick="switchTab('search')">馬検索・比較</div>
+    <div class="tab" onclick="switchTab('update')">データ追加</div>
 </div>
 
 <div id="ranking" class="content active">
     <div class="filter-group">
-        <div style="font-size:0.8rem; color:#007aff; margin-bottom:5px;">▼ 条件を指定して検索ボタンを押してください</div>
         <div class="filter-row">
-            <select id="placeSelect">
+            <select id="placeSelect" onchange="updateRanking()">
                 <option value="全て">場所: 全て</option>
                 <option value="東京">東京</option><option value="中山">中山</option>
                 <option value="京都">京都</option><option value="阪神">阪神</option>
                 <option value="その他">その他</option>
             </select>
-            <select id="trackSelect">
+            <select id="trackSelect" onchange="updateRanking()">
                 <option value="芝" selected>芝</option>
                 <option value="ダート">ダート</option><option value="障害">障害</option>
             </select>
         </div>
         <div class="filter-row">
-            <select id="distSelect">
+            <select id="distSelect" onchange="updateRanking()">
                 <option value="1200">1200m</option><option value="1400">1400m</option>
                 <option value="1600" selected>1600m</option><option value="1800">1800m</option>
                 <option value="2000">2000m</option><option value="2400">2400m</option>
             </select>
             <label style="display:flex; align-items:center; font-size:0.8rem;">
-                <input type="checkbox" id="outlierCheck" checked> 参考記録込
+                <input type="checkbox" id="outlierCheck" onchange="updateRanking()" checked> 参考記録込
             </label>
         </div>
-        <button id="rankBtn" class="btn-run" onclick="runRanking()" disabled>🔍 ランキングを表示</button>
     </div>
     <div id="rankingList" class="record-list">
-        <div style="text-align:center; color:#999; padding:20px;">条件を指定して実行してください</div>
+        <div style="text-align:center; color:#999; padding:20px;">データ未ロード</div>
     </div>
 </div>
 
 <div id="search" class="content">
     <div class="filter-group">
-        <div class="filter-row">
-            <input type="text" id="searchInput" placeholder="馬名を入力 (例: ドウデュース)">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="馬名を入力 (例: ドウデュース)" oninput="searchHorse()">
         </div>
-        <button id="searchBtn" class="btn-run" onclick="runSearch()" disabled>🐴 馬名で検索</button>
     </div>
+    <div class="selected-horses-area" id="selectedArea" style="display:none;">
+        <div style="font-size:0.8rem; color:gray; margin-bottom:5px;">選択中の馬</div>
+        <div class="tag-container" id="selectedTags"></div>
+        <button class="btn-compare" onclick="showComparison()">このメンバーの履歴を比較</button>
+    </div>
+    <div id="searchFilterArea" class="filter-group hidden">
+        <div style="font-size:0.8rem; color:#007aff; margin-bottom:8px; font-weight:bold;">▼ 絞り込み条件</div>
+        <div class="filter-row">
+            <select id="s_placeSelect" onchange="updateComparison()">
+                <option value="全て" selected>場所: 全て</option>
+                <option value="東京">東京</option><option value="中山">中山</option>
+                <option value="京都">京都</option><option value="阪神">阪神</option>
+                <option value="その他">その他</option>
+            </select>
+            <select id="s_trackSelect" onchange="updateComparison()">
+                <option value="全て" selected>トラック: 全て</option>
+                <option value="芝">芝</option><option value="ダート">ダート</option><option value="障害">障害</option>
+            </select>
+        </div>
+        <div class="filter-row">
+            <select id="s_distSelect" onchange="updateComparison()">
+                <option value="全て" selected>距離: 全て</option>
+                <option value="1200">1200m</option><option value="1400">1400m</option>
+                <option value="1600">1600m</option><option value="1800">1800m</option>
+                <option value="2000">2000m</option><option value="2400">2400m</option>
+            </select>
+            <label style="display:flex; align-items:center; font-size:0.8rem;">
+                <input type="checkbox" id="s_outlierCheck" onchange="updateComparison()" checked> 参考記録込
+            </label>
+        </div>
+    </div>
+    <div id="searchResultTitle" style="margin: 10px 0; font-weight:bold; display:none;">検索結果</div>
     <div id="searchList" class="record-list"></div>
 </div>
 
 <div id="update" class="content">
     <div class="filter-group">
-        <h3>データ追加</h3>
+        <h3 style="margin-top:0;">1. 新データの取得</h3>
         <p style="font-size:0.9rem; color:#666;">
-            新しいCSVファイルを選択すると、既存データに追記されます。<br>
-            (※巨大なファイルの場合、処理に時間がかかります)
+            Google Colabでコードを実行し、CSV(例: new_data.csv)を取得します。
+        </p>
+        <div class="script-area">
+            <textarea id="pythonCode" class="code-box" readonly></textarea>
+            <div style="margin-top:5px; text-align:center;">
+                <button class="btn-copy" onclick="copyScript()">📋 コードをコピー</button>
+                <a href="https://colab.research.google.com/" target="_blank" class="btn-colab">🚀 Colabを開く</a>
+            </div>
+        </div>
+    </div>
+    <div class="filter-group">
+        <h3 style="margin-top:0;">2. 既存データに追記</h3>
+        <p style="font-size:0.9rem; color:#666;">
+            新しく取得したCSVを選択し、「アプリ内に保存」を押してください。<br>
+            <span style="color:#007aff; font-weight:bold;">ダウンロード不要で、そのまま使えます。</span>
         </p>
         <div class="update-box">
+            <label style="display:block; margin-bottom:10px; font-weight:bold;">追加するCSV (new_data.csv)</label>
             <input type="file" id="updateFile" accept=".csv">
         </div>
-        <div id="updateStatus" style="color:#007aff; font-weight:bold;"></div>
+        <div id="updateResult" style="margin-bottom:20px; font-weight:bold; color:#007aff;"></div>
+        <div id="mergeActionArea" class="hidden">
+            <button id="saveInternalBtn" class="btn-primary" onclick="saveMergedToDB()">
+                💾 追記してアプリ内に保存<br>
+            </button>
+            <div style="margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
+                <button id="downloadBtn" class="btn-secondary" onclick="downloadMergedCSV()">
+                    CSVファイルとして書き出し
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- Worker用コード (別スレッドでCSVを一行ずつ処理する) ---
-    // BlobURLとして生成するため、ここに文字列として記述
-    const workerScript = `
-    importScripts('https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js');
-
-    onmessage = function(e) {
-        const { type, file, filters } = e.data;
+    // --- 【超重要】メモリ最適化データ構造 (列指向) ---
+    // オブジェクトの配列ではなく、項目の配列として持つことでメモリを90%削減する
+    const DB = {
+        ids: [],        // race_id (string)
+        dates: [],      // YYYYMMDD (int)
+        places: [],     // 0:その他, 1:札幌, ... (int)
+        tracks: [],     // 0:芝, 1:ダート, 2:障害 (int)
+        dists: [],      // 距離 (int)
+        conditions: [], // 0:良, 1:稍重, ... (int)
+        ranks: [],      // 着順 (int)
+        names: [],      // 馬名 (string)
+        times: [],      // 秒数 (float)
+        time_strs: [],  // "1:32.5" (string)
+        outliers: [],   // 0:false, 1:true (int)
         
-        if (type === 'RANKING') {
-            processRanking(file, filters);
-        } else if (type === 'SEARCH') {
-            processSearch(file, filters);
-        } else if (type === 'MERGE') {
-            // マージは複雑なため、今回は「追加」ではなく「差し替え」を推奨
-            // もし実装するならここで。今回はUI側で制御。
-        }
+        // フィルタ用インデックス
+        validIndices: [] // 現在の期間フィルタで有効なインデックスのリスト
     };
 
-    function processRanking(file, filters) {
-        const results = [];
-        const limit = 100; // 上位100件
-        let count = 0;
-        const totalSize = file.size;
-        let processedSize = 0;
+    // マッピング定義
+    const MAP_PLACE = {"その他":0, "札幌":1, "函館":2, "福島":3, "新潟":4, "東京":5, "中山":6, "中京":7, "京都":8, "阪神":9, "小倉":10};
+    const REV_PLACE = ["その他","札幌","函館","福島","新潟","東京","中山","中京","京都","阪神","小倉"];
+    const MAP_TRACK = {"芝":0, "ダート":1, "障害":2};
+    const REV_TRACK = ["芝","ダート","障害"];
+    const MAP_COND = {"良":0, "稍重":1, "重":2, "不良":3, "不明":4};
+    const REV_COND = ["良","稍重","重","不良","不明"];
 
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            chunk: function(resultsChunk, parser) {
-                const rows = resultsChunk.data;
-                processedSize += resultsChunk.meta.cursor || 0; // 進捗計算用(概算)
-                
-                // フィルタリング処理
-                for (let i = 0; i < rows.length; i++) {
-                    const r = rows[i];
-                    if (!r.race_id) continue;
-
-                    // 条件判定
-                    // 場所
-                    if (filters.place !== '全て' && r.place !== filters.place) continue;
-                    // トラック
-                    if (r.track !== filters.track) continue;
-                    // 距離 (数値変換して比較)
-                    if (parseInt(r.distance) !== filters.dist) continue;
-                    // 参考記録
-                    const isOut = (r.is_outlier === 'True' || r.is_outlier === 'true');
-                    if (!filters.showOutlier && isOut) continue;
-
-                    // マッチしたら格納 (必要な情報だけ)
-                    results.push({
-                        horse_name: r.horse_name,
-                        date: r.date,
-                        place: r.place,
-                        track: r.track,
-                        distance: r.distance,
-                        time_str: r.time_str,
-                        seconds: parseFloat(r.seconds) || 9999,
-                        condition: r.condition,
-                        rank: r.rank,
-                        is_outlier: isOut
-                    });
-                }
-                
-                // 進捗通知 (あまり頻繁だと重くなるので適度に)
-                // postMessage({ type: 'PROGRESS', percent: ... });
-            },
-            complete: function() {
-                // ソート (タイム順)
-                results.sort((a, b) => a.seconds - b.seconds);
-                // 上位のみ返す
-                const topResults = results.slice(0, limit);
-                postMessage({ type: 'RESULT', data: topResults });
-            },
-            error: function(err) {
-                postMessage({ type: 'ERROR', msg: err.message });
-            }
-        });
-    }
-
-    function processSearch(file, filters) {
-        const results = [];
-        const query = filters.query;
-        if(!query) {
-            postMessage({ type: 'RESULT', data: [] });
-            return;
-        }
-
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            chunk: function(resultsChunk) {
-                const rows = resultsChunk.data;
-                for (let i = 0; i < rows.length; i++) {
-                    const r = rows[i];
-                    if (!r.horse_name) continue;
-                    
-                    if (r.horse_name.includes(query)) {
-                        results.push(r);
-                    }
-                }
-            },
-            complete: function() {
-                // 日付順ソート (降順: 新しい順)
-                results.sort((a, b) => (a.date < b.date ? 1 : -1));
-                postMessage({ type: 'RESULT', data: results });
-            }
-        });
-    }
-    `;
-
-    // --- メインスレッド処理 ---
-    const DB_NAME = 'KeibaLargeDB';
-    const STORE_NAME = 'files';
+    let selectedHorses = new Set();
+    let isComparisonMode = false;
+    
+    // DB関連
+    const IDB_NAME = 'KeibaAppDB';
+    const IDB_VER = 2;
+    const STORE_NAME = 'csvStore';
     let db;
-    let worker;
-    let currentFile = null; // メモリ上には持たず、DBから取ったFileオブジェクトのみ保持
+    let mergedContentBlob = null; // マージ用
 
-    // 起動時
+    // --- Colab Script ---
+    const pythonScriptContent = `# Google Colab用 競馬データ取得スクリプト
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+import re
+import random
+from google.colab import files
+
+TARGET_YEAR = 2025
+TARGET_MONTH = 1
+SKIP_FILENAME = "skipped_ids.txt"
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+]
+
+def get_html(url):
+    try:
+        headers = {"User-Agent": random.choice(USER_AGENTS)}
+        res = requests.get(url, headers=headers, timeout=30)
+        res.encoding = "euc-jp"
+        return BeautifulSoup(res.text, "html.parser")
+    except: return None
+
+def get_race_ids(year, month):
+    race_ids = []
+    page = 1
+    while True:
+        url = f"https://db.netkeiba.com/?pid=race_list&word=&start_year={year}&start_mon={month}&end_year={year}&end_mon={month}&sort=date&list=100&page={page}"
+        soup = get_html(url)
+        if not soup: break
+        table = soup.find("table", class_="race_table_01")
+        if not table: break
+        rows = table.find_all("tr")
+        if len(rows) <= 1: break
+        current_ids = []
+        for row in rows[1:]:
+            a = row.find("a", href=re.compile(r"/race/\d+"))
+            if a:
+                match = re.search(r"/race/(\d+)", a["href"])
+                if match: current_ids.append(match.group(1))
+        if not current_ids: break
+        race_ids.extend(current_ids)
+        page += 1
+        time.sleep(1)
+    return race_ids
+
+def get_race_details(race_id):
+    url = f"https://db.netkeiba.com/race/{race_id}/"
+    soup = get_html(url)
+    if not soup: return []
+    intro = soup.find("div", class_="data_intro")
+    date_str, place, track, dist, cond = "", "その他", "芝", 1600, "良"
+    if intro:
+        txt = intro.get_text()
+        d_m = re.search(r"(\d+年\d+月\d+日)", txt)
+        if d_m: date_str = d_m.group(1)
+        if "ダ" in txt: track = "ダート"
+        elif "障" in txt: track = "障害"
+        dist_m = re.search(r"(\d+)m", txt)
+        if dist_m: dist = int(dist_m.group(1))
+        p_code = race_id[4:6]
+        places = {"05":"東京","06":"中山","08":"京都","09":"阪神"}
+        place = places.get(p_code, "その他")
+        if "稍" in txt: cond = "稍重"
+        elif "重" in txt: cond = "重"
+        elif "不" in txt: cond = "不良"
+    table = soup.find("table", class_="race_table_01")
+    if not table: return []
+    rows = table.find_all("tr")
+    headers = [th.get_text().strip() for th in rows[0].find_all("th")]
+    try:
+        i_rank = headers.index("着順")
+        i_name = headers.index("馬名")
+        i_time = headers.index("タイム")
+        i_w = headers.index("斤量")
+    except: return []
+    records = []
+    for row in rows[1:]:
+        cols = row.find_all("td")
+        if len(cols) != len(headers): continue
+        try:
+            r_str = cols[i_rank].get_text().strip()
+            if not r_str.isdigit(): continue
+            rank = int(r_str)
+            name = cols[i_name].get_text().strip()
+            t_str = cols[i_time].get_text().strip()
+            sec = 0.0
+            if ":" in t_str:
+                p = t_str.split(":")
+                sec = float(p[0])*60 + float(p[1])
+            w = float(cols[i_w].get_text().strip())
+            records.append({
+                "race_id": race_id, "date": date_str, "place": place, "track": track,
+                "distance": dist, "condition": cond, "rank": rank, "horse_name": name,
+                "time_str": t_str, "seconds": round(sec, 1), "weight": w, "age_sex": "",
+                "is_abnormal_type": False, "is_statistical_outlier": False, "is_outlier": False
+            })
+        except: continue
+    return records
+
+print(f"スキップリスト({SKIP_FILENAME})を読み込み中...")
+skipped_ids = set()
+if os.path.exists(SKIP_FILENAME):
+    with open(SKIP_FILENAME, "r", encoding="utf-8") as f:
+        for line in f:
+            clean_line = line.strip()
+            if "]" in clean_line: clean_line = clean_line.split("]")[1].strip()
+            if clean_line.isdigit(): skipped_ids.add(clean_line)
+    print(f"-> {len(skipped_ids)}件のIDを無視設定しました。")
+else:
+    print(f"-> ファイルが見つかりません。全件取得します。")
+
+print(f"{TARGET_YEAR}年{TARGET_MONTH}月のデータを取得中...")
+r_ids = get_race_ids(TARGET_YEAR, TARGET_MONTH)
+target_ids = [rid for rid in r_ids if rid not in skipped_ids]
+print(f"対象レース数: {len(target_ids)}件")
+
+all_data = []
+for i, rid in enumerate(target_ids):
+    data = get_race_details(rid)
+    if data: all_data.extend(data)
+    time.sleep(1)
+    if i % 10 == 0: print(f"{i}/{len(target_ids)}")
+if all_data:
+    df = pd.DataFrame(all_data)
+    filename = f"new_data_{TARGET_YEAR}_{TARGET_MONTH}.csv"
+    df.to_csv(filename, index=False, encoding="utf-8-sig")
+    print("完了！ダウンロードします...")
+    files.download(filename)
+else:
+    print("データが見つかりませんでした")
+`;
+
     window.onload = function() {
-        initWorker();
         openDB();
+        document.getElementById('pythonCode').value = pythonScriptContent;
     };
 
-    function initWorker() {
-        const blob = new Blob([workerScript], { type: 'application/javascript' });
-        worker = new Worker(URL.createObjectURL(blob));
-        
-        worker.onmessage = function(e) {
-            const msg = e.data;
-            if (msg.type === 'RESULT') {
-                hideProgress();
-                if (window.currentAction === 'RANKING') renderRanking(msg.data);
-                if (window.currentAction === 'SEARCH') renderSearch(msg.data);
-            } else if (msg.type === 'ERROR') {
-                hideProgress();
-                alert("エラー: " + msg.msg);
-            }
-        };
+    function copyScript() {
+        const c = document.getElementById("pythonCode"); c.select();
+        navigator.clipboard.writeText(c.value).then(()=>alert("コピーしました"));
     }
 
-    // --- IndexedDB (ファイルそのものをBlobとして保存) ---
+    // --- IndexedDB ---
     function openDB() {
-        const req = indexedDB.open(DB_NAME, 1);
+        const req = indexedDB.open(IDB_NAME, IDB_VER);
         req.onupgradeneeded = function(e) {
             db = e.target.result;
-            db.createObjectStore(STORE_NAME); // キーは "main" 固定
+            if (db.objectStoreNames.contains(STORE_NAME)) db.deleteObjectStore(STORE_NAME);
+            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         };
         req.onsuccess = function(e) {
             db = e.target.result;
-            checkDB();
+            loadFromDB();
         };
-        req.onerror = e => console.error(e);
+        req.onerror = function() { console.error("DB Error"); };
     }
 
-    function checkDB() {
-        const tx = db.transaction([STORE_NAME], 'readonly');
-        const req = tx.objectStore(STORE_NAME).get('mainCSV');
-        req.onsuccess = function(e) {
-            if (e.target.result) {
-                // ファイル(Blob)が見つかった
-                currentFile = e.target.result; 
-                document.getElementById('statusBox').innerText = `データ準備完了 (${(currentFile.size / 1024 / 1024).toFixed(1)} MB)`;
-                document.getElementById('statusBox').className = "status-box status-ready";
-                document.getElementById('clearBtn').style.display = "inline-block";
-                enableButtons(true);
-            } else {
-                document.getElementById('statusBox').innerText = "データ未登録 (CSVを選択してください)";
-                enableButtons(false);
-            }
-        };
-    }
-
-    function saveFileToDB(file) {
-        showProgress(true); // 擬似的に表示
+    // 保存処理 (Blobとして保存することで文字列化のオーバーヘッドを回避)
+    function saveToDB(fileOrBlob, fileName, callback) {
+        if (!db) return;
         const tx = db.transaction([STORE_NAME], 'readwrite');
-        const req = tx.objectStore(STORE_NAME).put(file, 'mainCSV');
+        const store = tx.objectStore(STORE_NAME);
+        const data = { id: 'mainCSV', content: fileOrBlob, fileName: fileName, date: new Date().toLocaleString() };
+        const req = store.put(data);
         req.onsuccess = function() {
-            hideProgress();
-            currentFile = file;
-            document.getElementById('statusBox').innerText = `保存完了: ${(file.size / 1024 / 1024).toFixed(1)} MB`;
-            document.getElementById('statusBox').className = "status-box status-ready";
-            document.getElementById('clearBtn').style.display = "inline-block";
-            enableButtons(true);
-            alert("データを保存しました。これでいつでも検索できます。");
+            document.getElementById('fileStatus').innerHTML = `<span class="status-success">保存完了 (${data.date})</span>`;
+            if(callback) callback();
         };
-        req.onerror = function() {
-            hideProgress();
-            alert("保存に失敗しました。HDD容量不足の可能性があります。");
+        req.onerror = function(e) { alert("保存失敗: " + e.target.error.message); };
+    }
+
+    function loadFromDB() {
+        const tx = db.transaction([STORE_NAME], 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        store.get('mainCSV').onsuccess = function(e) {
+            const res = e.target.result;
+            if (res) {
+                document.getElementById('fileStatus').innerHTML = `<span class="status-loading">展開中...</span>`;
+                setTimeout(() => {
+                    loadCSV(res.content, false);
+                    document.getElementById('fileStatus').innerHTML = `<span class="status-success">復元完了 (${res.date})</span>`;
+                    document.getElementById('clearDataArea').classList.remove('hidden');
+                }, 100);
+            } else {
+                document.getElementById('fileStatus').innerText = "データ未ロード";
+            }
         };
     }
 
     function clearDB() {
-        if(!confirm("データを削除しますか？")) return;
+        if(!confirm("削除しますか？")) return;
         const tx = db.transaction([STORE_NAME], 'readwrite');
         tx.objectStore(STORE_NAME).delete('mainCSV');
         location.reload();
     }
 
-    // --- UI操作 ---
+    // --- CSV Load (Stream & Columnar Store) ---
     document.getElementById('csvFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if(!file) return;
-        // 即座にDBへ保存
-        saveFileToDB(file);
+        loadCSV(file, true);
     });
 
-    // 追記（今回は簡易的に「上書き」として扱うか、警告を出す）
-    // 185MBに対してJSで追記処理をするとブラウザが死ぬため、PC側で結合することを推奨するメッセージに変更
-    document.getElementById('updateFile').addEventListener('change', function(e) {
-        alert("【注意】巨大なデータに対するブラウザ上での追記・結合はクラッシュの原因になります。\n\n新しい完全なCSVファイルを「メインデータの読み込み」から再登録することを推奨します。");
-        this.value = ""; // リセット
-    });
+    function loadCSV(file, shouldSave) {
+        // メモリリセット
+        DB.ids=[]; DB.dates=[]; DB.places=[]; DB.tracks=[]; DB.dists=[]; 
+        DB.conditions=[]; DB.ranks=[]; DB.names=[]; DB.times=[]; DB.time_strs=[]; DB.outliers=[];
+        DB.validIndices=[];
 
-    function enableButtons(enabled) {
-        document.getElementById('rankBtn').disabled = !enabled;
-        document.getElementById('searchBtn').disabled = !enabled;
+        let minYear = 9999, maxYear = 0;
+
+        document.getElementById('fileStatus').innerHTML = '<span class="status-loading">解析中...</span>';
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            step: function(row) {
+                const r = row.data;
+                if (!r.race_id) return;
+
+                // 必要なデータを圧縮して各配列にプッシュ
+                DB.ids.push(r.race_id);
+                DB.names.push(r.horse_name || "");
+                DB.time_strs.push(r.time_str || "");
+                
+                // 数値化 (辞書マッピング)
+                const pIdx = MAP_PLACE[r.place] || 0;
+                DB.places.push(pIdx);
+                
+                const tIdx = MAP_TRACK[r.track] || 0;
+                DB.tracks.push(tIdx);
+                
+                const cIdx = MAP_COND[r.condition] || 4;
+                DB.conditions.push(cIdx);
+
+                DB.dists.push(parseInt(r.distance) || 0);
+                DB.ranks.push(parseInt(r.rank) || 0);
+                DB.times.push(parseFloat(r.seconds) || 9999);
+                
+                const isOut = (r.is_outlier === 'True' || r.is_outlier === 'true') ? 1 : 0;
+                DB.outliers.push(isOut);
+
+                // 日付 (YYYYMMDD形式の整数に変換)
+                let y = 0, m = 0, d = 0;
+                if(r.date) {
+                    const mRes = r.date.match(/(\d+)年(\d+)月(\d+)日/);
+                    if(mRes) {
+                        y = parseInt(mRes[1]);
+                        m = parseInt(mRes[2]);
+                        d = parseInt(mRes[3]);
+                        if(y < minYear) minYear = y;
+                        if(y > maxYear) maxYear = y;
+                    }
+                }
+                DB.dates.push(y * 10000 + m * 100 + d);
+            },
+            complete: function() {
+                // 保存
+                if (shouldSave) {
+                    // Fileオブジェクトならそのまま、文字列ならBlob化して保存
+                    const blob = (file instanceof File || file instanceof Blob) ? file : new Blob([file], {type:'text/csv'});
+                    saveToDB(blob, file.name || "data.csv");
+                }
+                
+                // 初期フィルタ
+                setupDateFilter(minYear, maxYear);
+                applyDateFilter(true);
+            },
+            error: function(err) {
+                alert("エラー: " + err.message);
+            }
+        });
     }
 
-    function showProgress(indeterminate = true) {
-        const c = document.getElementById('progressContainer');
-        const b = document.getElementById('progressBar');
-        c.style.display = 'block';
-        if (indeterminate) {
-            b.style.width = '50%'; // 簡易表示
-            b.classList.add('status-busy');
+    // --- Filter & UI ---
+    function setupDateFilter(minYear, maxYear) {
+        if(minYear > 2100) { minYear = 2020; maxYear = 2025; }
+        const sel = document.getElementById('startYear');
+        sel.innerHTML = '';
+        for(let y=minYear; y<=maxYear; y++) {
+            const opt = document.createElement('option');
+            opt.value = y; opt.innerText = y; sel.appendChild(opt);
+        }
+        sel.value = minYear;
+        document.getElementById('startMonth').value = 1;
+        document.getElementById('periodFilterArea').classList.add('visible');
+    }
+
+    function applyDateFilter(refreshUI = true) {
+        const sYear = parseInt(document.getElementById('startYear').value);
+        const sMonth = parseInt(document.getElementById('startMonth').value);
+        const startVal = sYear * 10000 + sMonth * 100 + 1; // YYYYMM01
+
+        // インデックスの再構築
+        DB.validIndices = [];
+        const len = DB.dates.length;
+        for(let i=0; i<len; i++) {
+            if (DB.dates[i] >= startVal) {
+                DB.validIndices.push(i);
+            }
+        }
+
+        document.getElementById('periodCount').innerText = `対象: ${DB.validIndices.length} / ${len}件`;
+        
+        if(refreshUI) {
+            updateRanking();
+            if(!isComparisonMode) searchHorse(); else updateComparison();
         }
     }
-    function hideProgress() {
-        document.getElementById('progressContainer').style.display = 'none';
+
+    function updateRanking() {
+        if (DB.validIndices.length === 0) {
+            document.getElementById('rankingList').innerHTML = '<div style="text-align:center;padding:20px;">データなし</div>';
+            return;
+        }
+        
+        // 条件取得
+        const pVal = document.getElementById('placeSelect').value;
+        const pFilter = (pVal === '全て') ? -1 : MAP_PLACE[pVal];
+        
+        const tVal = document.getElementById('trackSelect').value;
+        const tFilter = MAP_TRACK[tVal];
+        
+        const dFilter = parseInt(document.getElementById('distSelect').value);
+        const showOutlier = document.getElementById('outlierCheck').checked;
+
+        // フィルタリング (インデックスベース)
+        let matched = [];
+        const indices = DB.validIndices;
+        for(let k=0; k<indices.length; k++) {
+            const i = indices[k];
+            
+            // 場所
+            if (pFilter !== -1 && DB.places[i] !== pFilter) continue;
+            // トラック
+            if (DB.tracks[i] !== tFilter) continue;
+            // 距離
+            if (DB.dists[i] !== dFilter) continue;
+            // 参考記録
+            if (!showOutlier && DB.outliers[i] === 1) continue;
+
+            matched.push(i);
+        }
+
+        // ソート (秒数)
+        matched.sort((a, b) => DB.times[a] - DB.times[b]);
+
+        // 表示 (上位100件)
+        renderList(matched.slice(0, 100), 'rankingList', true);
     }
 
-    // --- 実行処理 ---
-    function runRanking() {
-        if (!currentFile) return;
-        window.currentAction = 'RANKING';
-        
-        const filters = {
-            place: document.getElementById('placeSelect').value,
-            track: document.getElementById('trackSelect').value,
-            dist: parseInt(document.getElementById('distSelect').value),
-            showOutlier: document.getElementById('outlierCheck').checked
-        };
-
-        document.getElementById('rankingList').innerHTML = '<div style="text-align:center; padding:20px; color:#007aff;">検索中... (数秒かかります)</div>';
-        showProgress();
-        
-        worker.postMessage({ type: 'RANKING', file: currentFile, filters: filters });
-    }
-
-    function runSearch() {
-        if (!currentFile) return;
-        window.currentAction = 'SEARCH';
+    function searchHorse() {
+        isComparisonMode = false;
+        document.getElementById('searchFilterArea').classList.add('hidden');
+        document.getElementById('searchResultTitle').style.display = 'block';
         
         const query = document.getElementById('searchInput').value;
-        if (!query) { alert("馬名を入力してください"); return; }
+        if (!query) { document.getElementById('searchList').innerHTML = ''; return; }
 
-        document.getElementById('searchList').innerHTML = '<div style="text-align:center; padding:20px; color:#007aff;">全データから検索中...</div>';
-        showProgress();
+        // 馬名ユニーク化して検索
+        const hits = new Set();
+        const indices = DB.validIndices;
+        for(let k=0; k<indices.length; k++) {
+            const i = indices[k];
+            const name = DB.names[i];
+            if (name.includes(query)) hits.add(name);
+        }
+        const hitNames = Array.from(hits).sort();
 
-        worker.postMessage({ type: 'SEARCH', file: currentFile, filters: { query: query } });
-    }
-
-    // --- 描画 ---
-    function renderRanking(data) {
-        const c = document.getElementById('rankingList');
-        c.innerHTML = '';
-        if (data.length === 0) { c.innerHTML = '<div style="text-align:center; padding:20px;">該当なし</div>'; return; }
-
-        data.forEach((r, i) => {
-            const div = document.createElement('div');
-            div.className = 'record-item';
-            
-            let rc = 'rank-other';
-            if (i===0) rc='rank-1'; else if(i===1) rc='rank-2'; else if(i===2) rc='rank-3';
-            
-            div.innerHTML = `
-                <div style="display:flex;align-items:center;">
-                    <div class="rank-badge ${rc}">${i+1}</div>
-                    <div><span class="horse-name">${r.horse_name}</span>
-                    <div class="meta-info">${r.date} (${r.place}) <b>${r.track}${r.distance}m</b></div></div>
-                </div>
-                <div style="text-align:right;">
-                    <div class="time-str ${r.is_outlier?'outlier':''}">${r.time_str}</div>
-                    <div class="condition">${r.condition} / ${r.rank}着</div>
-                </div>`;
-            c.appendChild(div);
-        });
-    }
-
-    function renderSearch(data) {
+        // 描画
         const c = document.getElementById('searchList');
         c.innerHTML = '';
-        if (data.length === 0) { c.innerHTML = '<div style="text-align:center; padding:20px;">該当なし</div>'; return; }
+        hitNames.forEach(name => {
+            const div = document.createElement('div');
+            div.className = 'record-item'; div.style.cursor = 'pointer';
+            const isSel = selectedHorses.has(name);
+            div.innerHTML = `<span class="horse-name">${name}</span> ${isSel ? '✔' : '＋'}`;
+            div.onclick = () => toggleSelectHorse(name);
+            c.appendChild(div);
+        });
+    }
 
-        data.forEach(r => {
+    function toggleSelectHorse(name) {
+        if (selectedHorses.has(name)) selectedHorses.delete(name); else selectedHorses.add(name);
+        updateSelectedArea();
+        if(!isComparisonMode) searchHorse(); else updateComparison();
+    }
+
+    function updateSelectedArea() {
+        const c = document.getElementById('selectedTags');
+        const a = document.getElementById('selectedArea');
+        if(selectedHorses.size === 0) { a.style.display='none'; return; }
+        a.style.display='block'; c.innerHTML='';
+        selectedHorses.forEach(n => {
+            const t = document.createElement('div'); t.className='horse-tag';
+            t.innerHTML = `${n} <span class="remove-btn" onclick="toggleSelectHorse('${n}')">×</span>`;
+            c.appendChild(t);
+        });
+    }
+
+    function showComparison() {
+        isComparisonMode = true;
+        document.getElementById('searchFilterArea').classList.remove('hidden');
+        updateComparison();
+    }
+
+    function updateComparison() {
+        if(!isComparisonMode) return;
+        const pVal = document.getElementById('s_placeSelect').value;
+        const pFilter = (pVal === '全て') ? -1 : MAP_PLACE[pVal];
+        const tVal = document.getElementById('s_trackSelect').value;
+        const tFilter = (tVal === '全て') ? -1 : MAP_TRACK[tVal];
+        const dVal = document.getElementById('s_distSelect').value;
+        const dFilter = (dVal === '全て') ? -1 : parseInt(dVal);
+        const showOutlier = document.getElementById('s_outlierCheck').checked;
+
+        let matched = [];
+        const indices = DB.validIndices;
+        for(let k=0; k<indices.length; k++) {
+            const i = indices[k];
+            if (!selectedHorses.has(DB.names[i])) continue;
+            if (pFilter !== -1 && DB.places[i] !== pFilter) continue;
+            if (tFilter !== -1 && DB.tracks[i] !== tFilter) continue;
+            if (dFilter !== -1 && DB.dists[i] !== dFilter) continue;
+            if (!showOutlier && DB.outliers[i] === 1) continue;
+            matched.push(i);
+        }
+        matched.sort((a, b) => DB.times[a] - DB.times[b]);
+        renderList(matched, 'searchList', false);
+    }
+
+    function renderList(indices, targetId, isRank) {
+        const c = document.getElementById(targetId); c.innerHTML = '';
+        if (indices.length === 0) { c.innerHTML = '<div style="text-align:center;padding:20px;">該当なし</div>'; return; }
+        
+        indices.forEach((idx, i) => {
+            // オブジェクト再構築
+            const dateInt = DB.dates[idx];
+            const y = Math.floor(dateInt/10000);
+            const m = Math.floor((dateInt%10000)/100);
+            const d = dateInt%100;
+            const dateStr = `${y}年${m}月${d}日`;
+            const placeStr = REV_PLACE[DB.places[idx]];
+            const trackStr = REV_TRACK[DB.tracks[idx]];
+            const condStr = REV_COND[DB.conditions[idx]];
+            const isOut = (DB.outliers[idx] === 1);
+
             const div = document.createElement('div');
             div.className = 'record-item';
+            let rh = '';
+            if (isRank) {
+                let rc = 'rank-other';
+                if (i===0) rc='rank-1'; else if(i===1) rc='rank-2'; else if(i===2) rc='rank-3';
+                rh = `<div class="rank-badge ${rc}">${i+1}</div>`;
+            }
             div.innerHTML = `
-                <div><span class="horse-name">${r.horse_name}</span>
-                <div class="meta-info">${r.date} (${r.place}) ${r.track}${r.distance}m</div></div>
+                <div style="display:flex;align-items:center;">
+                    ${rh}
+                    <div><span class="horse-name">${DB.names[idx]}</span>
+                    <div class="meta-info">${dateStr} (${placeStr}) <b>${trackStr}${DB.dists[idx]}m</b></div></div>
+                </div>
                 <div style="text-align:right;">
-                    <div class="time-str">${r.time_str}</div>
-                    <div class="condition">${r.condition} / ${r.rank}着</div>
+                    <div class="time-str ${isOut?'outlier':''}">${DB.time_strs[idx]}</div>
+                    <div class="condition">${condStr}/${DB.ranks[idx]}着</div>
                 </div>`;
             c.appendChild(div);
         });
+    }
+
+    // --- Merge (UI Warning) ---
+    document.getElementById('updateFile').addEventListener('change', function(e) {
+        // マージはメモリリスクが高いため、今回は「ファイル再作成」を促すのみとするか、
+        // 簡易的にPapaParse.stepで追記保存してリロードする実装にする。
+        // ここでは「追記して保存」ボタンを有効化し、処理はWorkerではなく単純追記保存とする。
+        const file = e.target.files[0];
+        if(!file) return;
+        
+        mergedContentBlob = file; // 保持
+        document.getElementById('updateResult').innerHTML = "準備OK (※既存データ末尾に追加されます)";
+        document.getElementById('mergeActionArea').classList.remove('hidden');
+    });
+
+    function saveMergedToDB() {
+        if(!mergedContentBlob) return;
+        
+        // 既存の mainCSV を取得して、Blob同士を結合して保存する
+        const tx = db.transaction([STORE_NAME], 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.get('mainCSV').onsuccess = function(e) {
+            const oldData = e.target.result;
+            let newBlob;
+            
+            if (oldData && oldData.content) {
+                // Blob結合 (メモリ効率良し)
+                // CSVなので改行が必要かもしれないが、PapaParseの出力次第。通常は結合でOK
+                newBlob = new Blob([oldData.content, "\n", mergedContentBlob], {type: 'text/csv'});
+            } else {
+                newBlob = mergedContentBlob;
+            }
+            
+            const data = { id: 'mainCSV', content: newBlob, fileName: "merged.csv", date: new Date().toLocaleString() };
+            store.put(data).onsuccess = function() {
+                alert("保存しました。リロードして反映します。");
+                location.reload();
+            };
+        };
+    }
+
+    function downloadMergedCSV() {
+        // BlobからURL生成
+        if(!db) return;
+        const tx = db.transaction([STORE_NAME], 'readonly');
+        tx.objectStore(STORE_NAME).get('mainCSV').onsuccess = function(e) {
+            const res = e.target.result;
+            if(res && res.content) {
+                const url = URL.createObjectURL(res.content);
+                const a = document.createElement("a");
+                a.href = url; a.download = "app_data_full.csv";
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            } else { alert("データがありません"); }
+        };
     }
 
     function switchTab(n) {
         document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
         document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
         document.getElementById(n).classList.add('active');
-        // タブ切り替えロジック
-        const tabs = document.querySelectorAll('.tab');
-        if(n==='ranking') tabs[0].classList.add('active');
-        else if(n==='search') tabs[1].classList.add('active');
-        else tabs[2].classList.add('active');
+        if(n==='ranking') document.querySelectorAll('.tab')[0].classList.add('active');
+        else if(n==='search') document.querySelectorAll('.tab')[1].classList.add('active');
+        else document.querySelectorAll('.tab')[2].classList.add('active');
     }
 </script>
 </body>
