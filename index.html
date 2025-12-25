@@ -67,7 +67,7 @@
 <body>
 
 <header>
-    <h1>競馬データ分析 Web <span id="appVersion" class="version-tag">v3.0 (Memory Opt)</span></h1>
+    <h1>競馬データ分析 Web <span id="appVersion" class="version-tag">v3.2 (Date Display)</span></h1>
 </header>
 
 <div class="file-area">
@@ -90,7 +90,7 @@
                 <option value="7">7</option><option value="8">8</option><option value="9">9</option>
                 <option value="10">10</option><option value="11">11</option><option value="12">12</option>
             </select>
-            <span>月 〜 最新</span>
+            <span>月 〜 <span id="endDateLabel" style="font-weight:bold; color:#007aff;">最新</span></span>
         </div>
         <div id="periodCount" style="font-size:0.7rem; color:#666; margin-top:5px;"></div>
     </div>
@@ -107,13 +107,8 @@
         <div class="filter-row">
             <select id="placeSelect" onchange="updateRanking()">
                 <option value="全て">場所: 全て</option>
-                <option value="東京">東京</option><option value="中山">中山</option>
-                <option value="京都">京都</option><option value="阪神">阪神</option>
-                <option value="その他">その他</option>
             </select>
             <select id="trackSelect" onchange="updateRanking()">
-                <option value="芝" selected>芝</option>
-                <option value="ダート">ダート</option><option value="障害">障害</option>
             </select>
         </div>
         <div class="filter-row">
@@ -148,13 +143,9 @@
         <div class="filter-row">
             <select id="s_placeSelect" onchange="updateComparison()">
                 <option value="全て" selected>場所: 全て</option>
-                <option value="東京">東京</option><option value="中山">中山</option>
-                <option value="京都">京都</option><option value="阪神">阪神</option>
-                <option value="その他">その他</option>
             </select>
             <select id="s_trackSelect" onchange="updateComparison()">
                 <option value="全て" selected>トラック: 全て</option>
-                <option value="芝">芝</option><option value="ダート">ダート</option><option value="障害">障害</option>
             </select>
         </div>
         <div class="filter-row">
@@ -212,32 +203,18 @@
 </div>
 
 <script>
-    // --- 【超重要】メモリ最適化データ構造 (列指向) ---
-    // オブジェクトの配列ではなく、項目の配列として持つことでメモリを90%削減する
+    // --- メモリ最適化 & 動的マッピング ---
     const DB = {
-        ids: [],        // race_id (string)
-        dates: [],      // YYYYMMDD (int)
-        places: [],     // 0:その他, 1:札幌, ... (int)
-        tracks: [],     // 0:芝, 1:ダート, 2:障害 (int)
-        dists: [],      // 距離 (int)
-        conditions: [], // 0:良, 1:稍重, ... (int)
-        ranks: [],      // 着順 (int)
-        names: [],      // 馬名 (string)
-        times: [],      // 秒数 (float)
-        time_strs: [],  // "1:32.5" (string)
-        outliers: [],   // 0:false, 1:true (int)
-        
-        // フィルタ用インデックス
-        validIndices: [] // 現在の期間フィルタで有効なインデックスのリスト
+        ids: [], dates: [], places: [], tracks: [], dists: [], 
+        conditions: [], ranks: [], names: [], times: [], time_strs: [], outliers: [],
+        validIndices: []
     };
 
-    // マッピング定義
-    const MAP_PLACE = {"その他":0, "札幌":1, "函館":2, "福島":3, "新潟":4, "東京":5, "中山":6, "中京":7, "京都":8, "阪神":9, "小倉":10};
-    const REV_PLACE = ["その他","札幌","函館","福島","新潟","東京","中山","中京","京都","阪神","小倉"];
-    const MAP_TRACK = {"芝":0, "ダート":1, "障害":2};
-    const REV_TRACK = ["芝","ダート","障害"];
-    const MAP_COND = {"良":0, "稍重":1, "重":2, "不良":3, "不明":4};
-    const REV_COND = ["良","稍重","重","不良","不明"];
+    const Dicts = {
+        place: { list: ["その他"], map: {"その他":0} },
+        track: { list: ["芝"],     map: {"芝":0} },
+        cond:  { list: ["-"],      map: {"-":0} }
+    };
 
     let selectedHorses = new Set();
     let isComparisonMode = false;
@@ -247,7 +224,7 @@
     const IDB_VER = 2;
     const STORE_NAME = 'csvStore';
     let db;
-    let mergedContentBlob = null; // マージ用
+    let mergedContentBlob = null; 
 
     // --- Colab Script ---
     const pythonScriptContent = `# Google Colab用 競馬データ取得スクリプト
@@ -396,6 +373,19 @@ else:
         navigator.clipboard.writeText(c.value).then(()=>alert("コピーしました"));
     }
 
+    // --- Helper: 動的ID管理 ---
+    function getDictId(type, val) {
+        val = (val || "").trim();
+        if(!val) return 0; 
+        const dic = Dicts[type];
+        if(dic.map.hasOwnProperty(val)) return dic.map[val];
+        // 新出の単語なら登録
+        const idx = dic.list.length;
+        dic.list.push(val);
+        dic.map[val] = idx;
+        return idx;
+    }
+
     // --- IndexedDB ---
     function openDB() {
         const req = indexedDB.open(IDB_NAME, IDB_VER);
@@ -411,7 +401,6 @@ else:
         req.onerror = function() { console.error("DB Error"); };
     }
 
-    // 保存処理 (Blobとして保存することで文字列化のオーバーヘッドを回避)
     function saveToDB(fileOrBlob, fileName, callback) {
         if (!db) return;
         const tx = db.transaction([STORE_NAME], 'readwrite');
@@ -450,7 +439,7 @@ else:
         location.reload();
     }
 
-    // --- CSV Load (Stream & Columnar Store) ---
+    // --- CSV Load ---
     document.getElementById('csvFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if(!file) return;
@@ -458,12 +447,16 @@ else:
     });
 
     function loadCSV(file, shouldSave) {
-        // メモリリセット
+        // リセット
         DB.ids=[]; DB.dates=[]; DB.places=[]; DB.tracks=[]; DB.dists=[]; 
         DB.conditions=[]; DB.ranks=[]; DB.names=[]; DB.times=[]; DB.time_strs=[]; DB.outliers=[];
         DB.validIndices=[];
+        Dicts.place={list:["その他"],map:{"その他":0}};
+        Dicts.track={list:["芝"],map:{"芝":0}};
+        Dicts.cond={list:["-"],map:{"-":0}};
 
         let minYear = 9999, maxYear = 0;
+        let maxDateVal = 0; // ★最新日付用
 
         document.getElementById('fileStatus').innerHTML = '<span class="status-loading">解析中...</span>';
 
@@ -474,20 +467,13 @@ else:
                 const r = row.data;
                 if (!r.race_id) return;
 
-                // 必要なデータを圧縮して各配列にプッシュ
                 DB.ids.push(r.race_id);
                 DB.names.push(r.horse_name || "");
                 DB.time_strs.push(r.time_str || "");
                 
-                // 数値化 (辞書マッピング)
-                const pIdx = MAP_PLACE[r.place] || 0;
-                DB.places.push(pIdx);
-                
-                const tIdx = MAP_TRACK[r.track] || 0;
-                DB.tracks.push(tIdx);
-                
-                const cIdx = MAP_COND[r.condition] || 4;
-                DB.conditions.push(cIdx);
+                DB.places.push(getDictId("place", r.place));
+                DB.tracks.push(getDictId("track", r.track));
+                DB.conditions.push(getDictId("cond", r.condition));
 
                 DB.dists.push(parseInt(r.distance) || 0);
                 DB.ranks.push(parseInt(r.rank) || 0);
@@ -496,40 +482,59 @@ else:
                 const isOut = (r.is_outlier === 'True' || r.is_outlier === 'true') ? 1 : 0;
                 DB.outliers.push(isOut);
 
-                // 日付 (YYYYMMDD形式の整数に変換)
                 let y = 0, m = 0, d = 0;
                 if(r.date) {
                     const mRes = r.date.match(/(\d+)年(\d+)月(\d+)日/);
                     if(mRes) {
-                        y = parseInt(mRes[1]);
-                        m = parseInt(mRes[2]);
-                        d = parseInt(mRes[3]);
+                        y = parseInt(mRes[1]); m = parseInt(mRes[2]); d = parseInt(mRes[3]);
                         if(y < minYear) minYear = y;
                         if(y > maxYear) maxYear = y;
                     }
                 }
-                DB.dates.push(y * 10000 + m * 100 + d);
+                const dateInt = y * 10000 + m * 100 + d;
+                if(dateInt > maxDateVal) maxDateVal = dateInt; // ★最大日付を更新
+                DB.dates.push(dateInt);
             },
             complete: function() {
-                // 保存
                 if (shouldSave) {
-                    // Fileオブジェクトならそのまま、文字列ならBlob化して保存
                     const blob = (file instanceof File || file instanceof Blob) ? file : new Blob([file], {type:'text/csv'});
                     saveToDB(blob, file.name || "data.csv");
                 }
-                
-                // 初期フィルタ
-                setupDateFilter(minYear, maxYear);
+                updateSelectOptions(); 
+                setupDateFilter(minYear, maxYear, maxDateVal); // ★日付を渡す
                 applyDateFilter(true);
             },
-            error: function(err) {
-                alert("エラー: " + err.message);
-            }
+            error: function(err) { alert("エラー: " + err.message); }
         });
     }
 
-    // --- Filter & UI ---
-    function setupDateFilter(minYear, maxYear) {
+    function updateSelectOptions() {
+        const updateSel = (id, list) => {
+            const el = document.getElementById(id);
+            el.innerHTML = '<option value="-1">全て</option>';
+            list.forEach((val, i) => {
+                if(val === "-") return;
+                const opt = document.createElement('option');
+                opt.value = i; opt.innerText = val; el.appendChild(opt);
+            });
+        };
+        updateSel('placeSelect', Dicts.place.list);
+        updateSel('trackSelect', Dicts.track.list);
+        
+        const updateSelS = (id, list) => {
+            const el = document.getElementById(id);
+            el.innerHTML = '<option value="-1">全て</option>';
+            list.forEach((val, i) => {
+                if(val === "-") return;
+                const opt = document.createElement('option');
+                opt.value = i; opt.innerText = val; el.appendChild(opt);
+            });
+        };
+        updateSelS('s_placeSelect', Dicts.place.list);
+        updateSelS('s_trackSelect', Dicts.track.list);
+    }
+
+    function setupDateFilter(minYear, maxYear, maxDateVal) {
         if(minYear > 2100) { minYear = 2020; maxYear = 2025; }
         const sel = document.getElementById('startYear');
         sel.innerHTML = '';
@@ -540,24 +545,30 @@ else:
         sel.value = minYear;
         document.getElementById('startMonth').value = 1;
         document.getElementById('periodFilterArea').classList.add('visible');
+
+        // ★最新日付表示の更新
+        const endLabel = document.getElementById('endDateLabel');
+        if(maxDateVal > 0) {
+            const y = Math.floor(maxDateVal / 10000);
+            const m = Math.floor((maxDateVal % 10000) / 100);
+            const d = maxDateVal % 100;
+            endLabel.innerText = `${y}年${m}月${d}日`;
+        } else {
+            endLabel.innerText = "最新";
+        }
     }
 
     function applyDateFilter(refreshUI = true) {
         const sYear = parseInt(document.getElementById('startYear').value);
         const sMonth = parseInt(document.getElementById('startMonth').value);
-        const startVal = sYear * 10000 + sMonth * 100 + 1; // YYYYMM01
+        const startVal = sYear * 10000 + sMonth * 100 + 1; 
 
-        // インデックスの再構築
         DB.validIndices = [];
         const len = DB.dates.length;
         for(let i=0; i<len; i++) {
-            if (DB.dates[i] >= startVal) {
-                DB.validIndices.push(i);
-            }
+            if (DB.dates[i] >= startVal) DB.validIndices.push(i);
         }
-
         document.getElementById('periodCount').innerText = `対象: ${DB.validIndices.length} / ${len}件`;
-        
         if(refreshUI) {
             updateRanking();
             if(!isComparisonMode) searchHorse(); else updateComparison();
@@ -569,39 +580,22 @@ else:
             document.getElementById('rankingList').innerHTML = '<div style="text-align:center;padding:20px;">データなし</div>';
             return;
         }
-        
-        // 条件取得
-        const pVal = document.getElementById('placeSelect').value;
-        const pFilter = (pVal === '全て') ? -1 : MAP_PLACE[pVal];
-        
-        const tVal = document.getElementById('trackSelect').value;
-        const tFilter = MAP_TRACK[tVal];
-        
+        const pFilter = parseInt(document.getElementById('placeSelect').value);
+        const tFilter = parseInt(document.getElementById('trackSelect').value);
         const dFilter = parseInt(document.getElementById('distSelect').value);
         const showOutlier = document.getElementById('outlierCheck').checked;
 
-        // フィルタリング (インデックスベース)
         let matched = [];
         const indices = DB.validIndices;
         for(let k=0; k<indices.length; k++) {
             const i = indices[k];
-            
-            // 場所
             if (pFilter !== -1 && DB.places[i] !== pFilter) continue;
-            // トラック
-            if (DB.tracks[i] !== tFilter) continue;
-            // 距離
+            if (tFilter !== -1 && DB.tracks[i] !== tFilter) continue;
             if (DB.dists[i] !== dFilter) continue;
-            // 参考記録
             if (!showOutlier && DB.outliers[i] === 1) continue;
-
             matched.push(i);
         }
-
-        // ソート (秒数)
         matched.sort((a, b) => DB.times[a] - DB.times[b]);
-
-        // 表示 (上位100件)
         renderList(matched.slice(0, 100), 'rankingList', true);
     }
 
@@ -613,7 +607,6 @@ else:
         const query = document.getElementById('searchInput').value;
         if (!query) { document.getElementById('searchList').innerHTML = ''; return; }
 
-        // 馬名ユニーク化して検索
         const hits = new Set();
         const indices = DB.validIndices;
         for(let k=0; k<indices.length; k++) {
@@ -623,7 +616,6 @@ else:
         }
         const hitNames = Array.from(hits).sort();
 
-        // 描画
         const c = document.getElementById('searchList');
         c.innerHTML = '';
         hitNames.forEach(name => {
@@ -662,10 +654,8 @@ else:
 
     function updateComparison() {
         if(!isComparisonMode) return;
-        const pVal = document.getElementById('s_placeSelect').value;
-        const pFilter = (pVal === '全て') ? -1 : MAP_PLACE[pVal];
-        const tVal = document.getElementById('s_trackSelect').value;
-        const tFilter = (tVal === '全て') ? -1 : MAP_TRACK[tVal];
+        const pFilter = parseInt(document.getElementById('s_placeSelect').value);
+        const tFilter = parseInt(document.getElementById('s_trackSelect').value);
         const dVal = document.getElementById('s_distSelect').value;
         const dFilter = (dVal === '全て') ? -1 : parseInt(dVal);
         const showOutlier = document.getElementById('s_outlierCheck').checked;
@@ -690,15 +680,16 @@ else:
         if (indices.length === 0) { c.innerHTML = '<div style="text-align:center;padding:20px;">該当なし</div>'; return; }
         
         indices.forEach((idx, i) => {
-            // オブジェクト再構築
             const dateInt = DB.dates[idx];
             const y = Math.floor(dateInt/10000);
             const m = Math.floor((dateInt%10000)/100);
             const d = dateInt%100;
             const dateStr = `${y}年${m}月${d}日`;
-            const placeStr = REV_PLACE[DB.places[idx]];
-            const trackStr = REV_TRACK[DB.tracks[idx]];
-            const condStr = REV_COND[DB.conditions[idx]];
+            
+            const placeStr = Dicts.place.list[DB.places[idx]];
+            const trackStr = Dicts.track.list[DB.tracks[idx]];
+            const condStr = Dicts.cond.list[DB.conditions[idx]];
+            
             const isOut = (DB.outliers[idx] === 1);
 
             const div = document.createElement('div');
@@ -723,36 +714,24 @@ else:
         });
     }
 
-    // --- Merge (UI Warning) ---
     document.getElementById('updateFile').addEventListener('change', function(e) {
-        // マージはメモリリスクが高いため、今回は「ファイル再作成」を促すのみとするか、
-        // 簡易的にPapaParse.stepで追記保存してリロードする実装にする。
-        // ここでは「追記して保存」ボタンを有効化し、処理はWorkerではなく単純追記保存とする。
         const file = e.target.files[0];
         if(!file) return;
-        
-        mergedContentBlob = file; // 保持
+        mergedContentBlob = file; 
         document.getElementById('updateResult').innerHTML = "準備OK (※既存データ末尾に追加されます)";
         document.getElementById('mergeActionArea').classList.remove('hidden');
     });
 
     function saveMergedToDB() {
         if(!mergedContentBlob) return;
-        
-        // 既存の mainCSV を取得して、Blob同士を結合して保存する
         const tx = db.transaction([STORE_NAME], 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         store.get('mainCSV').onsuccess = function(e) {
             const oldData = e.target.result;
             let newBlob;
-            
             if (oldData && oldData.content) {
-                // Blob結合 (メモリ効率良し)
-                // CSVなので改行が必要かもしれないが、PapaParseの出力次第。通常は結合でOK
                 newBlob = new Blob([oldData.content, "\n", mergedContentBlob], {type: 'text/csv'});
-            } else {
-                newBlob = mergedContentBlob;
-            }
+            } else { newBlob = mergedContentBlob; }
             
             const data = { id: 'mainCSV', content: newBlob, fileName: "merged.csv", date: new Date().toLocaleString() };
             store.put(data).onsuccess = function() {
@@ -763,7 +742,6 @@ else:
     }
 
     function downloadMergedCSV() {
-        // BlobからURL生成
         if(!db) return;
         const tx = db.transaction([STORE_NAME], 'readonly');
         tx.objectStore(STORE_NAME).get('mainCSV').onsuccess = function(e) {
