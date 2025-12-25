@@ -328,6 +328,11 @@
 
     // --- Colab Script ---
     const pythonScriptContent = `# Google Colab用 競馬データ取得スクリプト
+# ========== ライブラリのインストール ==========
+# エラーを防ぐために、必要な機能を強制的にインストールします
+!pip install pandas requests beautifulsoup4
+
+# ========== ここからプログラム本体 ==========
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -336,9 +341,10 @@ import re
 import random
 from google.colab import files
 
-TARGET_YEAR = 2025
-TARGET_MONTH = 1
-SKIP_FILENAME = "skipped_ids.txt"
+# ========== 設定エリア (ここを変更) ==========
+TARGET_YEAR = 2025  # 取得したい年
+TARGET_MONTH = 2    # 取得したい月 (例: 2月なら 2)
+# ==========================================
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -357,6 +363,8 @@ def get_race_ids(year, month):
     race_ids = []
     page = 1
     while True:
+        # 進行状況が見えるようにprintを追加
+        print(f"レース一覧ページ {page} を取得中...")
         url = f"https://db.netkeiba.com/?pid=race_list&word=&start_year={year}&start_mon={month}&end_year={year}&end_mon={month}&sort=date&list=100&page={page}"
         soup = get_html(url)
         if not soup: break
@@ -430,34 +438,23 @@ def get_race_details(race_id):
         except: continue
     return records
 
-print(f"スキップリスト({SKIP_FILENAME})を読み込み中...")
-skipped_ids = set()
-if os.path.exists(SKIP_FILENAME):
-    with open(SKIP_FILENAME, "r", encoding="utf-8") as f:
-        for line in f:
-            clean_line = line.strip()
-            if "]" in clean_line: clean_line = clean_line.split("]")[1].strip()
-            if clean_line.isdigit(): skipped_ids.add(clean_line)
-    print(f"-> {len(skipped_ids)}件のIDを無視設定しました。")
-else:
-    print(f"-> ファイルが見つかりません。全件取得します。")
-
-print(f"{TARGET_YEAR}年{TARGET_MONTH}月のデータを取得中...")
+# メイン処理
+print(f"{TARGET_YEAR}年{TARGET_MONTH}月のデータを取得します...")
 r_ids = get_race_ids(TARGET_YEAR, TARGET_MONTH)
-target_ids = [rid for rid in r_ids if rid not in skipped_ids]
-print(f"対象レース数: {len(target_ids)}件")
+print(f"対象レース数: {len(r_ids)}件")
 
 all_data = []
-for i, rid in enumerate(target_ids):
+for i, rid in enumerate(r_ids):
     data = get_race_details(rid)
     if data: all_data.extend(data)
-    time.sleep(1)
-    if i % 10 == 0: print(f"{i}/{len(target_ids)}")
+    time.sleep(1) # サーバー負荷軽減のための待機
+    if i % 10 == 0: print(f"進捗: {i}/{len(r_ids)} レース完了")
+
 if all_data:
     df = pd.DataFrame(all_data)
     filename = f"new_data_{TARGET_YEAR}_{TARGET_MONTH}.csv"
     df.to_csv(filename, index=False, encoding="utf-8-sig")
-    print("完了！ダウンロードします...")
+    print(f"完了！ '{filename}' をダウンロードします...")
     files.download(filename)
 else:
     print("データが見つかりませんでした")
