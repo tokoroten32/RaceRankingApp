@@ -328,23 +328,37 @@
 
     // --- Colab Script ---
     const pythonScriptContent = `# Google Colab用 競馬データ取得スクリプト
-# ========== ライブラリのインストール ==========
-# エラーを防ぐために、必要な機能を強制的にインストールします
-!pip install pandas requests beautifulsoup4
+# ========== 1. 必要なライブラリのインストール ==========
+!pip install pandas requests beautifulsoup4 chardet
 
-# ========== ここからプログラム本体 ==========
+# ========== 2. プログラム本体 ==========
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
 import re
 import random
+import os
+import datetime
 from google.colab import files
 
-# ========== 設定エリア (ここを変更) ==========
-TARGET_YEAR = 2025  # 取得したい年
-TARGET_MONTH = 2    # 取得したい月 (例: 2月なら 2)
-# ==========================================
+# ================= 設定エリア =================
+# ★ここでモードを選択してください ('month' または 'date')
+SCRAPE_MODE = 'date' 
+#SCRAPE_MODE = 'month'
+
+# --- A. 月指定モードの設定 (SCRAPE_MODE = 'month' の場合) ---
+TARGET_YEAR = 2025
+TARGET_MONTH = 2
+
+# --- B. 日付指定モードの設定 (SCRAPE_MODE = 'date' の場合) ---
+# 開始日と終了日 (YYYY-MM-DD 形式)
+START_DATE = "2025-02-01"
+END_DATE   = "2025-02-02"
+
+# --- 共通設定 ---
+SKIP_FILENAME = "skipped_ids.txt"
+# =============================================
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -352,60 +366,116 @@ USER_AGENTS = [
 ]
 
 def get_html(url):
+    headers = {"User-Agent": random.choice(USER_AGENTS)}
     try:
-        headers = {"User-Agent": random.choice(USER_AGENTS)}
+        time.sleep(1)
         res = requests.get(url, headers=headers, timeout=30)
-        res.encoding = "euc-jp"
-        return BeautifulSoup(res.text, "html.parser")
-    except: return None
+        res.encoding = 'euc-jp'
+        if res.status_code != 200:
+            return None
+        return BeautifulSoup(res.content, "html.parser", from_encoding="euc-jp")
+    except:
+        return None
 
-def get_race_ids(year, month):
+# --- 月単位のID取得 (検索ページを使用) ---
+def get_race_ids_by_month(year, month):
     race_ids = []
     page = 1
     while True:
-        # 進行状況が見えるようにprintを追加
-        print(f"レース一覧ページ {page} を取得中...")
         url = f"https://db.netkeiba.com/?pid=race_list&word=&start_year={year}&start_mon={month}&end_year={year}&end_mon={month}&sort=date&list=100&page={page}"
+        print(f"  [月検索] {year}年{month}月 ページ{page} 取得中...", end=" ")
+        
         soup = get_html(url)
-        if not soup: break
+        if not soup:
+            print("失敗")
+            break
+        
+        # 終了判定など
         table = soup.find("table", class_="race_table_01")
         if not table: break
         rows = table.find_all("tr")
         if len(rows) <= 1: break
+        
         current_ids = []
         for row in rows[1:]:
-            a = row.find("a", href=re.compile(r"/race/\d+"))
-            if a:
-                match = re.search(r"/race/(\d+)", a["href"])
+            a_tag = row.find("a", href=re.compile(r"/race/\d{12}"))
+            if a_tag:
+                match = re.search(r"/race/(\d{12})", a_tag['href'])
                 if match: current_ids.append(match.group(1))
+        
         if not current_ids: break
+        print(f"-> {len(current_ids)}件")
         race_ids.extend(current_ids)
         page += 1
-        time.sleep(1)
-    return race_ids
+        
+    return list(dict.fromkeys(race_ids)) # 重複除去
+
+# --- 日付指定のID取得 (日別開催リストを使用) ---
+def get_race_ids_by_date(target_date_str):
+    # target_date_str: "2025-02-01" -> url: .../list/20250201/
+    date_digits = target_date_str.replace("-", "")
+    url = f"https://db.netkeiba.com/race/list/{date_digits}/"
+    
+    print(f"  [日次検索] {target_date_str} の開催を確認中...", end=" ")
+    soup = get_html(url)
+    if not soup:
+        print("アクセス失敗")
+        return []
+
+    # 日別リストページからID抽出
+    current_ids = []
+    # 日別ページはリンクがたくさんあるので、レースIDのパターンで全検索
+    a_tags = soup.find_all("a", href=re.compile(r"/race/\d{12}"))
+    
+    for a_tag in a_tags:
+        match = re.search(r"/race/(\d{12})", a_tag['href'])
+        if match:
+            current_ids.append(match.group(1))
+            
+    # 重複除去
+    current_ids = list(dict.fromkeys(current_ids))
+    
+    if len(current_ids) > 0:
+        print(f"-> {len(current_ids)}レース発見")
+    else:
+        print("-> 開催なし")
+        
+    return current_ids
 
 def get_race_details(race_id):
     url = f"https://db.netkeiba.com/race/{race_id}/"
     soup = get_html(url)
-    if not soup: return []
-    intro = soup.find("div", class_="data_intro")
+    if not soup: return None
+    
     date_str, place, track, dist, cond = "", "その他", "芝", 1600, "良"
-    if intro:
-        txt = intro.get_text()
-        d_m = re.search(r"(\d+年\d+月\d+日)", txt)
-        if d_m: date_str = d_m.group(1)
-        if "ダ" in txt: track = "ダート"
-        elif "障" in txt: track = "障害"
-        dist_m = re.search(r"(\d+)m", txt)
-        if dist_m: dist = int(dist_m.group(1))
-        p_code = race_id[4:6]
-        places = {"05":"東京","06":"中山","08":"京都","09":"阪神"}
-        place = places.get(p_code, "その他")
-        if "稍" in txt: cond = "稍重"
-        elif "重" in txt: cond = "重"
-        elif "不" in txt: cond = "不良"
+    try:
+        intro = soup.find("div", class_="data_intro")
+        if intro:
+            small_txt = intro.find("p", class_="smalltxt")
+            if small_txt:
+                d_match = re.search(r"(\d+年\d+月\d+日)", small_txt.get_text())
+                if d_match: date_str = d_match.group(1)
+            
+            infos = intro.get_text()
+            if "芝" in infos: track = "芝"
+            elif "ダ" in infos: track = "ダート"
+            elif "障" in infos: track = "障害"
+            
+            d_match = re.search(r"(\d+)m", infos)
+            if d_match: dist = int(d_match.group(1))
+            
+            if "稍" in infos: cond = "稍重"
+            elif "重" in infos: cond = "重"
+            elif "不" in infos: cond = "不良"
+            
+            place_code = race_id[4:6]
+            places = {"05":"東京","06":"中山","08":"京都","09":"阪神"}
+            place = places.get(place_code, "その他")
+    except: pass
+
     table = soup.find("table", class_="race_table_01")
-    if not table: return []
+    if not table: return None
+    
     rows = table.find_all("tr")
     headers = [th.get_text().strip() for th in rows[0].find_all("th")]
     try:
@@ -413,51 +483,120 @@ def get_race_details(race_id):
         i_name = headers.index("馬名")
         i_time = headers.index("タイム")
         i_w = headers.index("斤量")
-    except: return []
+    except: return None
+
     records = []
     for row in rows[1:]:
         cols = row.find_all("td")
         if len(cols) != len(headers): continue
         try:
-            r_str = cols[i_rank].get_text().strip()
-            if not r_str.isdigit(): continue
-            rank = int(r_str)
+            rank_str = cols[i_rank].get_text().strip()
+            if not rank_str.isdigit(): continue
+            
+            rank = int(rank_str)
             name = cols[i_name].get_text().strip()
-            t_str = cols[i_time].get_text().strip()
-            sec = 0.0
-            if ":" in t_str:
-                p = t_str.split(":")
-                sec = float(p[0])*60 + float(p[1])
-            w = float(cols[i_w].get_text().strip())
+            time_str = cols[i_time].get_text().strip()
+            weight_str = cols[i_w].get_text().strip()
+            weight = float(weight_str) if weight_str else 0.0
+            
+            seconds = 0.0
+            if ":" in time_str:
+                m, s = map(float, time_str.split(":"))
+                seconds = m * 60 + s
+            elif time_str:
+                try: seconds = float(time_str)
+                except: pass
+
             records.append({
                 "race_id": race_id, "date": date_str, "place": place, "track": track,
                 "distance": dist, "condition": cond, "rank": rank, "horse_name": name,
-                "time_str": t_str, "seconds": round(sec, 1), "weight": w, "age_sex": "",
-                "is_abnormal_type": False, "is_statistical_outlier": False, "is_outlier": False
+                "time_str": time_str, "seconds": round(seconds, 1), "weight": weight,
+                "is_outlier": False
             })
         except: continue
+        
     return records
 
-# メイン処理
-print(f"{TARGET_YEAR}年{TARGET_MONTH}月のデータを取得します...")
-r_ids = get_race_ids(TARGET_YEAR, TARGET_MONTH)
-print(f"対象レース数: {len(r_ids)}件")
+# ========== メイン処理 ==========
 
-all_data = []
-for i, rid in enumerate(r_ids):
-    data = get_race_details(rid)
-    if data: all_data.extend(data)
-    time.sleep(3) # サーバー負荷軽減のための待機
-    if i % 10 == 0: print(f"進捗: {i}/{len(r_ids)} レース完了")
-
-if all_data:
-    df = pd.DataFrame(all_data)
-    filename = f"new_data_{TARGET_YEAR}_{TARGET_MONTH}.csv"
-    df.to_csv(filename, index=False, encoding="utf-8-sig")
-    print(f"完了！ '{filename}' をダウンロードします...")
-    files.download(filename)
+# 1. スキップリスト読み込み
+skipped_ids = set()
+if os.path.exists(SKIP_FILENAME):
+    print(f"'{SKIP_FILENAME}' を読み込んでいます...")
+    with open(SKIP_FILENAME, "r", encoding="utf-8") as f:
+        for line in f:
+            skipped_ids.add(line.strip())
+    print(f"-> {len(skipped_ids)} 件のIDをスキップ登録")
 else:
-    print("データが見つかりませんでした")
+    print(f"-> '{SKIP_FILENAME}' なし。全件取得します。")
+
+# 2. ID一覧の収集
+all_r_ids = []
+output_filename = ""
+
+if SCRAPE_MODE == 'month':
+    print(f"\n【月指定モード】{TARGET_YEAR}年{TARGET_MONTH}月のデータを収集します...")
+    all_r_ids = get_race_ids_by_month(TARGET_YEAR, TARGET_MONTH)
+    output_filename = f"data_{TARGET_YEAR}_{TARGET_MONTH:02}.csv"
+
+elif SCRAPE_MODE == 'date':
+    print(f"\n【日付指定モード】{START_DATE} 〜 {END_DATE} のデータを収集します...")
+    
+    # 日付範囲ループ
+    start = datetime.datetime.strptime(START_DATE, "%Y-%m-%d")
+    end = datetime.datetime.strptime(END_DATE, "%Y-%m-%d")
+    
+    date_generated = [start + datetime.timedelta(days=x) for x in range(0, (end-start).days + 1)]
+    
+    for date_obj in date_generated:
+        d_str = date_obj.strftime("%Y-%m-%d")
+        ids = get_race_ids_by_date(d_str)
+        all_r_ids.extend(ids)
+        time.sleep(1)
+        
+    # 重複除去
+    all_r_ids = list(dict.fromkeys(all_r_ids))
+    output_filename = f"data_{START_DATE.replace('-','')}-{END_DATE.replace('-','')}.csv"
+
+else:
+    print("エラー: SCRAPE_MODE は 'month' か 'date' を指定してください")
+    exit()
+
+# 3. 取得対象のフィルタリング
+target_r_ids = [rid for rid in all_r_ids if rid not in skipped_ids]
+
+print(f"\n全対象数: {len(all_r_ids)}件")
+print(f"取得予定: {len(target_r_ids)}件 (スキップ: {len(all_r_ids) - len(target_r_ids)}件)")
+
+# 4. 詳細データ取得ループ
+if target_r_ids:
+    all_data = []
+    print("詳細データの取得を開始します...")
+    
+    for i, rid in enumerate(target_r_ids):
+        data = get_race_details(rid)
+        
+        if data:
+            all_data.extend(data)
+        else:
+            print(f"  [失敗] ID: {rid} -> スキップリストに追加")
+            with open(SKIP_FILENAME, "a", encoding="utf-8") as f:
+                f.write(f"{rid}\n")
+        
+        if i % 10 == 0:
+            print(f"  {i}/{len(target_r_ids)} 完了")
+            
+    # 5. 保存
+    if all_data:
+        df = pd.DataFrame(all_data)
+        df.to_csv(output_filename, index=False, encoding="utf-8-sig")
+        print(f"\n完了！ '{output_filename}' をダウンロードします...")
+        files.download(output_filename)
+        files.download(SKIP_FILENAME)
+    else:
+        print("詳細データが1件も取れませんでした。")
+else:
+    print("取得すべき新しいデータはありません。")
 `;
 
     window.onload = function() {
