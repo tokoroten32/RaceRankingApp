@@ -447,7 +447,7 @@ all_data = []
 for i, rid in enumerate(r_ids):
     data = get_race_details(rid)
     if data: all_data.extend(data)
-    time.sleep(1) # サーバー負荷軽減のための待機
+    time.sleep(3) # サーバー負荷軽減のための待機
     if i % 10 == 0: print(f"進捗: {i}/{len(r_ids)} レース完了")
 
 if all_data:
