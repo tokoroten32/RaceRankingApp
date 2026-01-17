@@ -8,18 +8,25 @@
     <style>
         :root { --base-font-size: 16px; }
         html { font-size: var(--base-font-size); }
+
         body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; margin: 0; padding: 0; background: #f2f2f7; color: #333; }
         
         header { background: #fff; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.2rem; }
         .version-tag { font-size: 0.7rem; color: #888; font-weight: normal; margin-left: 5px; vertical-align: middle; }
+
         .settings-btn { background: none; border: 1px solid #ccc; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 0.9rem; color: #555; }
         
+        /* モーダル */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: none; justify-content: center; align-items: center; }
         .modal-box { background: #fff; padding: 20px; border-radius: 10px; width: 90%; max-width: 350px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; flex-direction: column; max-height: 80vh; }
+        
         .modal-box.help-box { max-width: 600px; }
         .help-content { overflow-y: auto; text-align: left; margin-bottom: 15px; padding-right: 5px; font-size: 0.9rem; line-height: 1.6; }
         .help-section { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .help-section:last-child { border-bottom: none; }
+        .help-title { font-weight: bold; color: #007aff; margin-bottom: 5px; font-size: 1rem; }
+
         .modal-title { font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; font-size: 1.1rem; text-align: center; }
         .menu-item { margin-bottom: 15px; }
         .menu-label { display: block; font-size: 0.9rem; color: #666; margin-bottom: 5px; }
@@ -39,6 +46,7 @@
         
         .filter-group { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .filter-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .filter-row:last-child { margin-bottom: 0; }
         select, input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; }
         
         .race-picker-area { background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px dashed #ccc; }
@@ -46,12 +54,13 @@
         .race-picker-controls { display: flex; gap: 5px; margin-bottom: 5px; }
         .race-picker-controls select { font-size: 0.9rem; padding: 5px; }
 
-        /* ★一括追加エリア */
+        /* 一括追加エリア */
         .bulk-add-area { margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 10px; }
         .bulk-textarea { width: 100%; height: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9rem; box-sizing: border-box; }
         
         .record-list { list-style: none; padding: 0; margin: 0; }
         .record-item { background: #fff; padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .record-item:last-child { border-bottom: none; }
         
         .rank-badge { width: 2.2em; height: 2.2em; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; font-size: 0.9rem; flex-shrink: 0; }
         .rank-1 { background: gold; color: #fff; }
@@ -61,12 +70,15 @@
         
         .horse-name { font-weight: bold; font-size: 1.1rem; display: block; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(0,0,0,0.2); }
         .horse-name:hover { opacity: 0.7; }
-        .jockey-name { font-size: 0.8rem; color: #666; margin-left: 5px; font-weight: normal; }
+        
+        /* 騎手名スタイル */
+        .jockey-name { font-size: 0.8rem; color: #666; margin-left: 5px; font-weight: normal; display: inline-block; }
 
         .meta-info { font-size: 0.8rem; color: #666; }
         .time-str { font-weight: bold; font-size: 1.2rem; font-family: monospace; }
         .condition { font-size: 0.75rem; color: #999; }
         .outlier { color: red; }
+        .ref-text { color: red; font-size: 0.7rem; }
         .history-rank-badge { background-color: #007aff; color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
 
         .search-box { display: flex; gap: 5px; }
@@ -82,6 +94,7 @@
         .btn-secondary { background: #8e8e93; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; width: 100%; }
         .btn-danger { background: #ff3b30; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; width: 100%; }
         .btn-help { background: #34c759; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; width: 100%; margin-bottom: 10px; }
+
         .script-area { text-align: left; margin-bottom: 20px; }
         .code-box { width: 100%; height: 100px; font-family: monospace; font-size: 0.8rem; border: 1px solid #ddd; border-radius: 5px; padding: 5px; background: #f0f0f0; color: #555; box-sizing: border-box; resize: vertical; }
         .btn-copy { background: #5856d6; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; margin-right: 5px; }
@@ -92,7 +105,7 @@
 <body>
 
 <header>
-    <h1>競馬データ分析 <span id="appVersion" class="version-tag">v5.2</span></h1>
+    <h1>競馬データ分析 <span id="appVersion" class="version-tag">v5.4</span></h1>
     <button class="settings-btn" onclick="toggleMenu()">⚙️ 設定</button>
 </header>
 
@@ -115,8 +128,9 @@
     <div class="modal-box help-box">
         <div class="modal-title">📖 アプリの使い方</div>
         <div class="help-content">
-            <div class="help-section"><div class="help-title">1. 出馬表の取り込み</div>専用スクリプトで出馬表（馬名リスト）を取得し、「テキストから一括追加」欄に貼り付けると、これから走る馬の過去データを一括比較できます。</div>
-            <div class="help-section"><div class="help-title">2. ランキング機能</div>条件に合うタイムランキングを表示します。同一馬が複数いる場合は馬名が色付きで表示されます。</div>
+            <div class="help-section"><div class="help-title">1. はじめに</div>騎手データが含まれたCSVファイルを読み込んでください。</div>
+            <div class="help-section"><div class="help-title">2. ランキング機能</div>条件に合うタイムランキングを表示します。日付の横に騎手名が表示されます。<br><strong>馬名をクリック</strong>すると、その馬の全履歴を一覧（タイム順）で確認できます。</div>
+            <div class="help-section"><div class="help-title">3. レース指定比較</div>特定の日付・場所・レースの出走馬を一括選択できます。</div>
         </div>
         <button class="btn-secondary" onclick="toggleHelp()">閉じる</button>
     </div>
@@ -312,6 +326,7 @@
     let selectedHorses = new Set();
     let isComparisonMode = false;
     let currentRankMap = new Map();
+    let horseNameSet = new Set(); // ★馬名検索高速化用
     
     const IDB_NAME = 'KeibaAppDB';
     const IDB_VER = 3;
@@ -535,6 +550,7 @@ def get_race_details(race_id):
         Dicts.place={list:["その他"],map:{"その他":0}};
         Dicts.track={list:["芝"],map:{"芝":0}};
         Dicts.cond={list:["-"],map:{"-":0}};
+        horseNameSet.clear(); // ★
 
         let minYear = 9999, maxYear = 0;
         let maxDateVal = 0; 
@@ -550,6 +566,8 @@ def get_race_details(race_id):
 
                 DB.ids.push(r.race_id);
                 DB.names.push(r.horse_name || "");
+                if(r.horse_name) horseNameSet.add(r.horse_name); // ★
+                
                 DB.jockeys.push(r.jockey || ""); 
                 DB.time_strs.push(r.time_str || "");
                 
@@ -851,39 +869,43 @@ def get_race_details(race_id):
         }
     }
 
-    // ★一括追加処理
+    // ★修正: 一括追加処理 (DBにある馬のみ追加)
     function addBulkHorses() {
         const text = document.getElementById('bulkNameInput').value;
         if (!text) return;
         
         const lines = text.split('\n');
-        let count = 0;
-        let addedNames = [];
-        
-        // 既存の選択をクリアするかどうか？
-        // ここでは「追加」なのでクリアせずに追記します
+        let successCount = 0;
+        let failCount = 0;
+        let failedNames = [];
         
         lines.forEach(line => {
             const name = line.trim();
-            if (name) {
-                // DBに存在するかチェック
-                // (Setで高速化も可能ですが、件数が少なければloopでもOK)
-                if (DB.names.includes(name)) {
-                    if(!selectedHorses.has(name)) {
-                        selectedHorses.add(name);
-                        count++;
-                        addedNames.push(name);
-                    }
+            if (!name) return;
+
+            // horseNameSet を使って高速チェック
+            if (horseNameSet.has(name)) {
+                if(!selectedHorses.has(name)) {
+                    selectedHorses.add(name);
+                    successCount++;
                 }
+            } else {
+                failCount++;
+                if(failedNames.length < 5) failedNames.push(name); // 先頭5件だけ記録
             }
         });
         
-        if (count > 0) {
+        if (successCount > 0) {
             updateSelectedArea();
-            document.getElementById('bulkNameInput').value = ''; // クリア
-            alert(`${count}頭を追加しました。\n「履歴を比較」ボタンで確認してください。`);
+            document.getElementById('bulkNameInput').value = ''; 
+            
+            let msg = `${successCount}頭を追加しました。`;
+            if(failCount > 0) {
+                msg += `\n(${failCount}頭は見つかりませんでした: ${failedNames.join(', ')} など)`;
+            }
+            alert(msg);
         } else {
-            alert("該当する馬が見つかりませんでした（または既に追加済みです）。\n過去データに存在しない新馬などは追加されません。");
+            alert(`追加できる馬がいませんでした。\n(入力された ${failCount}頭はすべてデータに存在しません)`);
         }
     }
 
