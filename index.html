@@ -71,7 +71,6 @@
         .horse-name { font-weight: bold; font-size: 1.1rem; display: block; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(0,0,0,0.2); }
         .horse-name:hover { opacity: 0.7; }
         
-        /* 騎手名スタイル */
         .jockey-name { font-size: 0.8rem; color: #666; margin-left: 5px; font-weight: normal; display: inline-block; }
 
         .meta-info { font-size: 0.8rem; color: #666; }
@@ -105,7 +104,7 @@
 <body>
 
 <header>
-    <h1>競馬データ分析 <span id="appVersion" class="version-tag">v5.4</span></h1>
+    <h1>競馬データ分析 <span id="appVersion" class="version-tag">v6.1</span></h1>
     <button class="settings-btn" onclick="toggleMenu()">⚙️ 設定</button>
 </header>
 
@@ -128,8 +127,8 @@
     <div class="modal-box help-box">
         <div class="modal-title">📖 アプリの使い方</div>
         <div class="help-content">
-            <div class="help-section"><div class="help-title">1. はじめに</div>騎手データが含まれたCSVファイルを読み込んでください。</div>
-            <div class="help-section"><div class="help-title">2. ランキング機能</div>条件に合うタイムランキングを表示します。日付の横に騎手名が表示されます。<br><strong>馬名をクリック</strong>すると、その馬の全履歴を一覧（タイム順）で確認できます。</div>
+            <div class="help-section"><div class="help-title">1. JRA/地方の切替</div>「所属」フィルタで、JRAのみ、地方競馬のみ、または両方を表示するかを切り替えられます。</div>
+            <div class="help-section"><div class="help-title">2. ランキング機能</div>条件に合うタイムランキングを表示します。日付の横に騎手名が表示されます。</div>
             <div class="help-section"><div class="help-title">3. レース指定比較</div>特定の日付・場所・レースの出走馬を一括選択できます。</div>
         </div>
         <button class="btn-secondary" onclick="toggleHelp()">閉じる</button>
@@ -175,23 +174,28 @@
 <div id="ranking" class="content active">
     <div class="filter-group">
         <div class="filter-row">
-            <select id="placeSelect" onchange="updateDistanceOptions('main'); updateRanking();">
-                <option value="全て">場所: 全て</option>
+            <select id="orgSelect" onchange="updateSelectOptions(); updateRanking();" style="font-weight:bold; color:#007aff;">
+                <option value="all">所属: 全て</option>
+                <option value="jra">所属: JRAのみ</option>
+                <option value="nar">所属: 地方のみ</option>
             </select>
-            <select id="trackSelect" onchange="updateDistanceOptions('main'); updateRanking();">
+            <select id="placeSelect" onchange="updateDistanceOptions('main'); updateRanking();">
+                <option value="-1">場所: 全て</option>
             </select>
         </div>
         <div class="filter-row">
+            <select id="trackSelect" onchange="updateDistanceOptions('main'); updateRanking();">
+            </select>
             <select id="distSelect" onchange="updateRanking()">
             </select>
-            <div style="display:flex; flex-direction:column; gap:5px;">
-                <label style="display:flex; align-items:center; font-size:0.8rem;">
-                    <input type="checkbox" id="outlierCheck" onchange="updateRanking()" checked> 参考記録込
-                </label>
-                <label style="display:flex; align-items:center; font-size:0.8rem; color:#007aff; font-weight:bold;">
-                    <input type="checkbox" id="dupCheck" onchange="updateRanking()" checked> 同一馬の重複を表示
-                </label>
-            </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:5px;">
+            <label style="display:flex; align-items:center; font-size:0.8rem;">
+                <input type="checkbox" id="outlierCheck" onchange="updateRanking()" checked> 参考記録込
+            </label>
+            <label style="display:flex; align-items:center; font-size:0.8rem; color:#007aff; font-weight:bold;">
+                <input type="checkbox" id="dupCheck" onchange="updateRanking()" checked> 同一馬の重複を表示
+            </label>
         </div>
     </div>
     <div id="rankingList" class="record-list">
@@ -228,23 +232,28 @@
     <div id="searchFilterArea" class="filter-group hidden">
         <div style="font-size:0.8rem; color:#007aff; margin-bottom:8px; font-weight:bold;">▼ 絞り込み条件</div>
         <div class="filter-row">
-            <select id="s_placeSelect" onchange="updateDistanceOptions('search'); updateComparison();">
-                <option value="全て" selected>場所: 全て</option>
+            <select id="s_orgSelect" onchange="updateSelectOptions(); updateComparison();" style="font-weight:bold; color:#007aff;">
+                <option value="all">所属: 全て</option>
+                <option value="jra">所属: JRAのみ</option>
+                <option value="nar">所属: 地方のみ</option>
             </select>
-            <select id="s_trackSelect" onchange="updateDistanceOptions('search'); updateComparison();">
+            <select id="s_placeSelect" onchange="updateDistanceOptions('search'); updateComparison();">
+                <option value="-1">場所: 全て</option>
             </select>
         </div>
         <div class="filter-row">
+            <select id="s_trackSelect" onchange="updateDistanceOptions('search'); updateComparison();">
+            </select>
             <select id="s_distSelect" onchange="updateComparison()">
             </select>
-            <div style="display:flex; flex-direction:column; gap:5px;">
-                <label style="display:flex; align-items:center; font-size:0.8rem;">
-                    <input type="checkbox" id="s_outlierCheck" onchange="updateComparison()" checked> 参考記録込
-                </label>
-                <label style="display:flex; align-items:center; font-size:0.8rem; color:#007aff; font-weight:bold;">
-                    <input type="checkbox" id="s_dupCheck" onchange="updateComparison()" checked> 同一馬の重複を表示
-                </label>
-            </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:5px;">
+            <label style="display:flex; align-items:center; font-size:0.8rem;">
+                <input type="checkbox" id="s_outlierCheck" onchange="updateComparison()" checked> 参考記録込
+            </label>
+            <label style="display:flex; align-items:center; font-size:0.8rem; color:#007aff; font-weight:bold;">
+                <input type="checkbox" id="s_dupCheck" onchange="updateComparison()" checked> 同一馬の重複を表示
+            </label>
         </div>
     </div>
     <div id="searchResultTitle" style="margin: 10px 0; font-weight:bold; display:none;">検索結果</div>
@@ -281,34 +290,8 @@
 </div>
 
 <script>
-    const RACE_COURSE_DATA = {
-        "中山": { "芝": [1200,1600,1800,2000,2200,2500,3600], "ダート": [1200,1800,2400,2500], "障害": [2880,3030,3200,3210,3350,3370,3570,4100,4250] },
-        "東京": { "芝": [1400,1600,1800,2000,2300,2400,2500,3400], "ダート": [1300,1400,1600,2100], "障害": [3000,3100,3110,3300] },
-        "京都": { "芝": [1200,1400,1600,1800,2000,2200,2400,3000,3200], "ダート": [1200,1400,1800,1900], "障害": [2910,3170,3930] },
-        "阪神": { "芝": [1200,1400,1600,1800,2000,2200,2400,2600,3000,3200], "ダート": [1200,1400,1800,2000], "障害": [2970,3110,3140,3900] },
-        "新潟": { "芝": [1000,1200,1400,1600,1800,2000,2200,2400], "ダート": [1200,1800], "障害": [2850,2890,3250,3290] },
-        "中京": { "芝": [1200,1400,1600,2000,2200], "ダート": [1200,1400,1800,1900], "障害": [3000,3300,3330] },
-        "札幌": { "芝": [1200,1500,1800,2000,2600], "ダート": [1000,1700,2400], "障害": [] },
-        "函館": { "芝": [1200,1800,2000,2600], "ダート": [1000,1700,2400], "障害": [] },
-        "福島": { "芝": [1200,1800,2000,2600], "ダート": [1150,1700,2400], "障害": [2750,2770,2910,3350,3380] },
-        "小倉": { "芝": [1200,1800,2000,2600], "ダート": [1000,1700,2400], "障害": [2860,3390] },
-        "帯広": { "ダート":[200] },
-        "門別": { "ダート":[1000,1200,1600,1700,1800,2000] },
-        "盛岡": { "芝":[1000,1600,1700,2400], "ダート":[1000,1200,1400,1600,1800,2000] },
-        "水沢": { "ダート":[850,1300,1400,1600,1900] },
-        "浦和": { "ダート":[800,1400,1500,2000] },
-        "船橋": { "ダート":[1000,1200,1500,1600,1700,1800] },
-        "大井": { "ダート":[1000,1200,1400,1600,1800,2000,2400,2600] },
-        "川崎": { "ダート":[900,1400,1500,1600,2000,2100] },
-        "金沢": { "ダート":[1400,1500,1700,1900,2000] },
-        "笠松": { "ダート":[1400,1600,1900,2500] },
-        "名古屋": { "ダート":[1500,1700,2000,2100] },
-        "園田": { "ダート":[1230,1400,1700,1870,2400] },
-        "姫路": { "ダート":[1400,1500,1800,2000] },
-        "高知": { "ダート":[1300,1400,1600,1900,2400] },
-        "佐賀": { "ダート":[1300,1400,1750,1800,2000] },
-        "その他": { "芝":[1200,1600,2000,2400], "ダート":[1200,1400,1600,1800], "障害":[3000] }
-    };
+    // JRAの場所定義
+    const JRA_TRACKS = new Set(["札幌", "函館", "福島", "新潟", "東京", "中山", "中京", "京都", "阪神", "小倉"]);
 
     const DB = {
         ids: [], dates: [], places: [], tracks: [], dists: [], 
@@ -326,7 +309,7 @@
     let selectedHorses = new Set();
     let isComparisonMode = false;
     let currentRankMap = new Map();
-    let horseNameSet = new Set(); // ★馬名検索高速化用
+    let horseNameSet = new Set(); 
     
     const IDB_NAME = 'KeibaAppDB';
     const IDB_VER = 3;
@@ -550,7 +533,7 @@ def get_race_details(race_id):
         Dicts.place={list:["その他"],map:{"その他":0}};
         Dicts.track={list:["芝"],map:{"芝":0}};
         Dicts.cond={list:["-"],map:{"-":0}};
-        horseNameSet.clear(); // ★
+        horseNameSet.clear(); 
 
         let minYear = 9999, maxYear = 0;
         let maxDateVal = 0; 
@@ -566,7 +549,7 @@ def get_race_details(race_id):
 
                 DB.ids.push(r.race_id);
                 DB.names.push(r.horse_name || "");
-                if(r.horse_name) horseNameSet.add(r.horse_name); // ★
+                if(r.horse_name) horseNameSet.add(r.horse_name); 
                 
                 DB.jockeys.push(r.jockey || ""); 
                 DB.time_strs.push(r.time_str || "");
@@ -610,86 +593,97 @@ def get_race_details(race_id):
     }
 
     function updateSelectOptions() {
-        const updateSel = (id, list) => {
+        const updateSel = (id, orgId) => {
             const el = document.getElementById(id);
-            el.innerHTML = '<option value="-1">全て</option>';
-            list.forEach((val, i) => {
+            const orgVal = document.getElementById(orgId).value; // "all", "jra", "nar"
+            
+            el.innerHTML = '<option value="-1">場所: 全て</option>';
+            
+            Dicts.place.list.forEach((val, i) => {
+                if(val === "-") return;
+                
+                const isJra = JRA_TRACKS.has(val);
+                
+                if (orgVal === "jra" && !isJra) return;
+                if (orgVal === "nar" && isJra) return;
+                
+                const opt = document.createElement('option');
+                opt.value = i; opt.innerText = val; el.appendChild(opt);
+            });
+        };
+        
+        updateSel('placeSelect', 'orgSelect');
+        updateSel('s_placeSelect', 's_orgSelect');
+        
+        const updateTrack = (id) => {
+            const el = document.getElementById(id);
+            el.innerHTML = '<option value="-1">トラック: 全て</option>';
+            Dicts.track.list.forEach((val, i) => {
                 if(val === "-") return;
                 const opt = document.createElement('option');
                 opt.value = i; opt.innerText = val; el.appendChild(opt);
             });
         };
-        updateSel('placeSelect', Dicts.place.list);
-        updateSel('trackSelect', Dicts.track.list);
-        updateSelS('s_placeSelect', Dicts.place.list);
-        updateSelS('s_trackSelect', Dicts.track.list);
+        updateTrack('trackSelect');
+        updateTrack('s_trackSelect');
+
         updateDistanceOptions('main');
         updateDistanceOptions('search');
     }
-    
-    function updateSelS(id, list) {
-        const el = document.getElementById(id);
-        el.innerHTML = '<option value="-1">全て</option>';
-        list.forEach((val, i) => {
-            if(val === "-") return;
-            const opt = document.createElement('option');
-            opt.value = i; opt.innerText = val; el.appendChild(opt);
-        });
-    }
 
+    // ★修正: データ駆動型の動的距離オプション生成
     function updateDistanceOptions(mode) {
         const pId = (mode === 'main') ? 'placeSelect' : 's_placeSelect';
         const tId = (mode === 'main') ? 'trackSelect' : 's_trackSelect';
         const dId = (mode === 'main') ? 'distSelect' : 's_distSelect';
+        const orgId = (mode === 'main') ? 'orgSelect' : 's_orgSelect';
 
         const placeIdx = parseInt(document.getElementById(pId).value);
         const trackIdx = parseInt(document.getElementById(tId).value);
+        const orgVal = document.getElementById(orgId).value;
+
+        // DB全体から、現在の条件に合う距離を収集する
+        const availableDists = new Set();
         
-        let targetPlaces = [];
-        let targetTracks = [];
+        // 高速化のため、対象のインデックスを絞る
+        const indices = DB.validIndices;
+        for(let k=0; k<indices.length; k++) {
+            const i = indices[k];
+            
+            // 所属フィルタ
+            if (orgVal !== 'all') {
+                const pName = Dicts.place.list[DB.places[i]];
+                const isJra = JRA_TRACKS.has(pName);
+                if (orgVal === 'jra' && !isJra) continue;
+                if (orgVal === 'nar' && isJra) continue;
+            }
 
-        if (placeIdx === -1) {
-            targetPlaces = Object.keys(RACE_COURSE_DATA);
-        } else {
-            const name = Dicts.place.list[placeIdx];
-            if (RACE_COURSE_DATA[name]) targetPlaces = [name];
-            else targetPlaces = ["その他"];
+            // 場所フィルタ
+            if (placeIdx !== -1 && DB.places[i] !== placeIdx) continue;
+
+            // トラックフィルタ
+            if (trackIdx !== -1 && DB.tracks[i] !== trackIdx) continue;
+
+            // 条件に合致したので距離を追加
+            availableDists.add(DB.dists[i]);
         }
 
-        if (trackIdx === -1) {
-            targetTracks = ["芝", "ダート", "障害"];
-        } else {
-            targetTracks = [Dicts.track.list[trackIdx]];
-        }
-
-        let distSet = new Set();
-        targetPlaces.forEach(p => {
-            const courseObj = RACE_COURSE_DATA[p];
-            if (!courseObj) return;
-            targetTracks.forEach(t => {
-                if (courseObj[t] && Array.isArray(courseObj[t])) {
-                    courseObj[t].forEach(d => distSet.add(d));
-                }
-            });
-        });
-
-        let distances = Array.from(distSet).sort((a, b) => a - b);
-        if (distances.length === 0) distances = RACE_COURSE_DATA["その他"]["芝"];
+        const sortedDists = Array.from(availableDists).sort((a,b) => a - b);
 
         const distSelect = document.getElementById(dId);
         const currentVal = distSelect.value;
-        distSelect.innerHTML = '<option value="-1">全て</option>';
-        distances.forEach(d => {
+        distSelect.innerHTML = '<option value="-1">距離: 全て</option>';
+        
+        sortedDists.forEach(d => {
             const opt = document.createElement('option');
             opt.value = d; opt.innerText = d + "m"; distSelect.appendChild(opt);
         });
 
-        if (currentVal !== "-1" && distances.includes(parseInt(currentVal))) {
+        if (currentVal !== "-1" && sortedDists.includes(parseInt(currentVal))) {
             distSelect.value = currentVal;
         } else {
-            if(distances.includes(1600)) distSelect.value = 1600;
-            else if(distances.length > 0) distSelect.value = distances[0];
-            else distSelect.value = "-1";
+            // デフォルトでマイルか近い距離があれば選びたいが、ここでは「全て」に戻すのが無難
+            distSelect.value = "-1";
         }
     }
 
@@ -736,6 +730,8 @@ def get_race_details(race_id):
             document.getElementById('rankingList').innerHTML = '<div style="text-align:center;padding:20px;">データなし</div>';
             return;
         }
+        
+        const orgVal = document.getElementById('orgSelect').value;
         const pFilter = parseInt(document.getElementById('placeSelect').value);
         const tFilter = parseInt(document.getElementById('trackSelect').value);
         const dVal = document.getElementById('distSelect').value;
@@ -747,6 +743,14 @@ def get_race_details(race_id):
         const indices = DB.validIndices;
         for(let k=0; k<indices.length; k++) {
             const i = indices[k];
+            
+            if (orgVal !== 'all') {
+                const pName = Dicts.place.list[DB.places[i]];
+                const isJra = JRA_TRACKS.has(pName);
+                if (orgVal === 'jra' && !isJra) continue;
+                if (orgVal === 'nar' && isJra) continue;
+            }
+
             if (pFilter !== -1 && DB.places[i] !== pFilter) continue;
             if (tFilter !== -1 && DB.tracks[i] !== tFilter) continue;
             if (dFilter !== -1 && DB.dists[i] !== dFilter) continue;
@@ -869,7 +873,6 @@ def get_race_details(race_id):
         }
     }
 
-    // ★修正: 一括追加処理 (DBにある馬のみ追加)
     function addBulkHorses() {
         const text = document.getElementById('bulkNameInput').value;
         if (!text) return;
@@ -883,7 +886,6 @@ def get_race_details(race_id):
             const name = line.trim();
             if (!name) return;
 
-            // horseNameSet を使って高速チェック
             if (horseNameSet.has(name)) {
                 if(!selectedHorses.has(name)) {
                     selectedHorses.add(name);
@@ -891,7 +893,7 @@ def get_race_details(race_id):
                 }
             } else {
                 failCount++;
-                if(failedNames.length < 5) failedNames.push(name); // 先頭5件だけ記録
+                if(failedNames.length < 5) failedNames.push(name); 
             }
         });
         
@@ -964,6 +966,8 @@ def get_race_details(race_id):
 
     function updateComparison() {
         if(!isComparisonMode) return;
+        
+        const orgVal = document.getElementById('s_orgSelect').value;
         const pFilter = parseInt(document.getElementById('s_placeSelect').value);
         const tFilter = parseInt(document.getElementById('s_trackSelect').value);
         const dVal = document.getElementById('s_distSelect').value;
@@ -976,6 +980,14 @@ def get_race_details(race_id):
         for(let k=0; k<indices.length; k++) {
             const i = indices[k];
             if (!selectedHorses.has(DB.names[i])) continue;
+            
+            if (orgVal !== 'all') {
+                const pName = Dicts.place.list[DB.places[i]];
+                const isJra = JRA_TRACKS.has(pName);
+                if (orgVal === 'jra' && !isJra) continue;
+                if (orgVal === 'nar' && isJra) continue;
+            }
+
             if (pFilter !== -1 && DB.places[i] !== pFilter) continue;
             if (tFilter !== -1 && DB.tracks[i] !== tFilter) continue;
             if (dFilter !== -1 && DB.dists[i] !== dFilter) continue;
